@@ -22,10 +22,8 @@ public class MiniView {
     private final ClientView clientView;
     private Thread cameraDetectionThread;
     private volatile boolean shouldMonitorCamera = false;
-    private volatile boolean hasCameraTriggered = false; // 是否已经触发过相机自动全屏
-    private int previousViewMode = -1; // 记录触发全屏前的模式
+    private volatile boolean hasCameraTriggered = false;
 
-    // 相机包名列表
     private static final String[] CAMERA_PACKAGES = {
             "com.android.camera",
             "com.sec.android.app.camera",
@@ -72,11 +70,9 @@ public class MiniView {
             }
         }));
 
-        // 强制启动相机检测
         PublicTools.logToast("相机检测已启动");
         shouldMonitorCamera = true;
         hasCameraTriggered = false;
-        previousViewMode = -1;
         if (cameraDetectionThread != null) cameraDetectionThread.interrupt();
         cameraDetectionThread = new Thread(this::cameraDetectionLoop);
         cameraDetectionThread.start();
@@ -129,11 +125,10 @@ public class MiniView {
                 Thread.sleep(1000);
                 String currentPkg = getForegroundPackage();
                 boolean isCamera = isCameraPackage(currentPkg);
+                PublicTools.logToast("当前包名: " + (currentPkg == null ? "null" : currentPkg) + " isCamera=" + isCamera);
 
                 if (isCamera && !hasCameraTriggered) {
-                    // 相机出现且尚未触发：记录当前模式并切换到全屏
-                    previousViewMode = clientView.viewMode;
-                    PublicTools.logToast("检测到相机，切换到全屏 (之前模式=" + previousViewMode + ")");
+                    PublicTools.logToast("检测到相机，切换到全屏");
                     AppData.uiHandler.post(() -> {
                         if (shouldMonitorCamera) {
                             clientView.changeToFull();
@@ -141,24 +136,11 @@ public class MiniView {
                         }
                     });
                 } else if (!isCamera && hasCameraTriggered) {
-                    // 相机消失且之前触发过：恢复到之前的模式
-                    PublicTools.logToast("相机已退出，恢复到模式 " + previousViewMode);
+                    PublicTools.logToast("相机已退出，恢复到迷你悬浮窗");
                     AppData.uiHandler.post(() -> {
                         if (shouldMonitorCamera) {
-                            switch (previousViewMode) {
-                                case 1:
-                                    clientView.changeToMini(0); // 传入mode参数，一般用0
-                                    break;
-                                case 2:
-                                    clientView.changeToSmall();
-                                    break;
-                                default:
-                                    // 如果之前是全屏或未知，不做操作或恢复到小窗
-                                    clientView.changeToSmall();
-                                    break;
-                            }
+                            clientView.changeToMini(0); // 强制回到迷你悬浮窗
                             hasCameraTriggered = false;
-                            previousViewMode = -1;
                         }
                     });
                 }
@@ -172,28 +154,20 @@ public class MiniView {
 
     private String getForegroundPackage() {
         try {
-            // 执行完整 dumpsys window 命令（不用 grep）
             String result = clientView.getClient().adb.runAdbCmd("dumpsys window");
-            if (result == null || result.isEmpty()) {
-                return null;
-            }
-            // 按行查找 mCurrentFocus
+            if (result == null || result.isEmpty()) return null;
             String[] lines = result.split("\n");
             for (String line : lines) {
                 if (line.contains("mCurrentFocus")) {
-                    // 提取包名：找到 u0 后跟包名
                     int idx = line.indexOf("u0");
                     if (idx == -1) continue;
                     int start = idx + 2;
-                    while (start < line.length() && (line.charAt(start) == ' ' || line.charAt(start) == '{')) {
-                        start++;
-                    }
+                    while (start < line.length() && (line.charAt(start) == ' ' || line.charAt(start) == '{')) start++;
                     int end = line.indexOf("/", start);
                     if (end == -1) continue;
                     return line.substring(start, end);
                 }
             }
-            // 备选：查找 mFocusedApp
             for (String line : lines) {
                 if (line.contains("mFocusedApp")) {
                     java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("u0\\s+([\\w.]+)/");
