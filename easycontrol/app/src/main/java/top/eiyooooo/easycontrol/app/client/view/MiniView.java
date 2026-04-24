@@ -10,8 +10,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import top.eiyooooo.easycontrol.app.entity.AppData;
@@ -23,6 +21,7 @@ public class MiniView {
 
   private final ClientView clientView;
   private Thread timeoutListenerThread;
+  private long lastTouchOutsideTime = 0;
 
   // 迷你悬浮窗
   private final ModuleMiniViewBinding miniView = ModuleMiniViewBinding.inflate(LayoutInflater.from(AppData.main));
@@ -60,10 +59,11 @@ public class MiniView {
         AppData.windowManager.addView(miniView.getRoot(), miniViewParams);
       }
     }));
-    // 相机检测（替换原5秒逻辑）
+    // 超时检测
     if (mode != 0 && AppData.setting.getMiniRecoverOnTimeout()) {
+      lastTouchOutsideTime = System.currentTimeMillis();
       if (timeoutListenerThread != null) timeoutListenerThread.interrupt();
-      timeoutListenerThread = new Thread(() -> cameraCheckListener(mode));
+      timeoutListenerThread = new Thread(() -> timeoutListener(mode));
       timeoutListenerThread.start();
     }
   }
@@ -71,7 +71,7 @@ public class MiniView {
   public void hide() {
     try {
       miniView.getRoot().setVisibility(View.GONE);
-      AppData.windowManager.removeView(miniView.getRoot(), miniViewParams);
+      AppData.windowManager.removeView(miniView.getRoot());
       clientView.updateDevice();
       if (timeoutListenerThread != null) timeoutListenerThread.interrupt();
     } catch (Exception ignored) {
@@ -87,6 +87,7 @@ public class MiniView {
       switch (event.getActionMasked()) {
         case MotionEvent.ACTION_OUTSIDE:
           clientView.lastTouchIsInside = false;
+          lastTouchOutsideTime = System.currentTimeMillis();
           break;
         case MotionEvent.ACTION_DOWN: {
           clientView.lastTouchIsInside = true;
@@ -111,53 +112,24 @@ public class MiniView {
     });
   }
 
-  // ====================== 检测被控端相机前台（完全兼容版） ======================
-  private void cameraCheckListener(int mode) {
+  // ====================== 仅这里修改：相机启动恢复全屏 ======================
+  private void timeoutListener(int mode) {
     try {
       while (!Thread.interrupted()) {
         Thread.sleep(500);
-        // 直接用 Runtime.exec 执行ADB命令，不依赖任何项目内部变量
-        String result = execAdbCommand("dumpsys window | grep mCurrentFocus");
-        if (result != null && result.contains("com.android.camera")) {
-          AppData.uiHandler.post(() -> {
-            if (mode == 1) clientView.changeToSmall();
-            else if (mode == 2) clientView.changeToFull();
-          });
-          return;
+        // 检测被控端相机是否在前台
+        if (clientView.getClient() != null) {
+          String result = clientView.getClient().execCmd("dumpsys window | grep mCurrentFocus");
+          if (result != null && result.contains("com.android.camera")) {
+            AppData.uiHandler.post(() -> {
+              if (mode == 1) clientView.changeToSmall();
+              else if (mode == 2) clientView.changeToFull();
+            });
+            return;
+          }
         }
       }
     } catch (Exception ignored) {}
   }
-
-  // 安全的ADB命令执行封装（不依赖项目内部变量）
-  private String execAdbCommand(String cmd) {
-    Process process = null;
-    BufferedReader reader = null;
-    try {
-      // 项目中adb文件的路径
-      String adbPath = AppData.main.getApplicationInfo().dataDir + "/adb";
-      // 执行ADB命令，指定被控设备地址
-      process = Runtime.getRuntime().exec(new String[]{
-              adbPath,
-              "-s",
-              clientView.device.address,
-              "shell",
-              cmd
-      });
-      reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      StringBuilder output = new StringBuilder();
-      String line;
-      while ((line = reader.readLine()) != null) {
-        output.append(line);
-      }
-      process.waitFor();
-      return output.toString();
-    } catch (Exception e) {
-      return null;
-    } finally {
-      if (reader != null) try { reader.close(); } catch (Exception ignored) {}
-      if (process != null) process.destroy();
-    }
-  }
-  // ==============================================================================
+  // ======================================================================
 }
