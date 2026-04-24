@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import top.eiyooooo.easycontrol.app.entity.AppData;
 import top.eiyooooo.easycontrol.app.helper.PublicTools;
 import top.eiyooooo.easycontrol.app.R;
-import top.eiyooooo.easycontrol.app.databinding.ModuleMiniViewBinding;
+import top.eiyooooo.easycontrol.app.datab.ModuleMiniViewBinding;
 
 public class MiniView {
 
@@ -109,12 +109,14 @@ public class MiniView {
     });
   }
 
-  // ====================== 相机前台检测逻辑（替换5秒恢复） ======================
+  // ====================== 检测【被控端】相机 ======================
   private void cameraCheckListener(int mode) {
     try {
       while (!Thread.interrupted()) {
-        Thread.sleep(500); // 每0.5秒检测一次
-        if (isCameraRunningForeground()) {
+        Thread.sleep(500);
+        // 执行命令：检查被控端前台是否为相机
+        String result = clientView.adbClient.execCmd("dumpsys window | grep mCurrentFocus");
+        if (result != null && result.contains("com.android.camera")) {
           AppData.uiHandler.post(() -> {
             if (mode == 1) clientView.changeToSmall();
             else if (mode == 2) clientView.changeToFull();
@@ -124,16 +126,5 @@ public class MiniView {
       }
     } catch (Exception ignored) {}
   }
-
-  // 判断相机是否在前台
-  private boolean isCameraRunningForeground() {
-    try {
-      Process process = Runtime.getRuntime().exec("adb shell dumpsys window | grep mCurrentFocus | grep com.android.camera");
-      int result = process.waitFor();
-      return result == 0;
-    } catch (Exception e) {
-      return false;
-    }
-  }
-  // ==========================================================================
+  // ==============================================================
 }
