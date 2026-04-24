@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.res.ColorStateList;
 import android.graphics.PixelFormat;
 import android.os.Build;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -23,16 +24,8 @@ public class MiniView {
     private Thread cameraDetectionThread;
     private volatile boolean shouldMonitorCamera = false;
 
-    // 相机包名列表
     private static final String[] CAMERA_PACKAGES = {
-            "com.android.camera",
-            "com.sec.android.app.camera",
-            "com.huawei.camera",
-            "com.xiaomi.camera",
-            "com.oppo.camera",
-            "com.vivo.camera",
-            "com.oneplus.camera",
-            "com.google.android.GoogleCamera"
+            "com.android.camera"
     };
 
     private final ModuleMiniViewBinding miniView = ModuleMiniViewBinding.inflate(LayoutInflater.from(AppData.main));
@@ -70,7 +63,6 @@ public class MiniView {
             }
         }));
 
-        // 强制启动相机检测（忽略 mode 和原超时开关）
         PublicTools.logToast("相机检测已启动");
         shouldMonitorCamera = true;
         if (cameraDetectionThread != null) cameraDetectionThread.interrupt();
@@ -124,14 +116,19 @@ public class MiniView {
             while (!Thread.interrupted() && shouldMonitorCamera) {
                 Thread.sleep(1000);
                 String currentPkg = getForegroundPackage();
-                if (currentPkg != null && isCameraPackage(currentPkg)) {
-                    PublicTools.logToast("检测到相机：" + currentPkg);
-                    AppData.uiHandler.post(() -> {
-                        if (shouldMonitorCamera) {
-                            clientView.changeToFull();
-                        }
-                    });
-                    return; // 恢复后停止检测
+                if (currentPkg != null) {
+                    Log.d("CameraCheck", "当前前台包名: " + currentPkg);
+                    if (isCameraPackage(currentPkg)) {
+                        PublicTools.logToast("检测到相机：" + currentPkg);
+                        AppData.uiHandler.post(() -> {
+                            if (shouldMonitorCamera) {
+                                clientView.changeToFull();
+                            }
+                        });
+                        return;
+                    }
+                } else {
+                    Log.d("CameraCheck", "获取包名失败");
                 }
             }
         } catch (InterruptedException ignored) {
@@ -143,9 +140,11 @@ public class MiniView {
 
     private String getForegroundPackage() {
         try {
-            // 使用 dumpsys window 获取当前焦点窗口
-            String result = clientView.getClient().adb.runAdbCmd("shell dumpsys window | grep mCurrentFocus");
+            // 使用 dumpsys window mCurrentFocus 直接获取焦点窗口行
+            String result = clientView.getClient().adb.runAdbCmd("shell dumpsys window mCurrentFocus");
             if (result == null || result.isEmpty()) return null;
+            Log.d("CameraCheck", "mCurrentFocus原始输出: " + result);
+            // 示例: mCurrentFocus=Window{1eaf116 u0 com.android.camera/com.android.camera.Camera}
             int start = result.indexOf("u0 ");
             if (start == -1) return null;
             start += 3;
@@ -153,7 +152,7 @@ public class MiniView {
             if (end == -1) return null;
             return result.substring(start, end);
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e("CameraCheck", "获取包名异常", e);
             return null;
         }
     }
