@@ -21,7 +21,6 @@ public class MiniView {
 
   private final ClientView clientView;
   private Thread timeoutListenerThread;
-  private long lastTouchOutsideTime = 0;
 
   // 迷你悬浮窗
   private final ModuleMiniViewBinding miniView = ModuleMiniViewBinding.inflate(LayoutInflater.from(AppData.main));
@@ -59,11 +58,10 @@ public class MiniView {
         AppData.windowManager.addView(miniView.getRoot(), miniViewParams);
       }
     }));
-    // 超时检测
+    // 相机检测（替换原5秒逻辑）
     if (mode != 0 && AppData.setting.getMiniRecoverOnTimeout()) {
-      lastTouchOutsideTime = System.currentTimeMillis();
       if (timeoutListenerThread != null) timeoutListenerThread.interrupt();
-      timeoutListenerThread = new Thread(() -> timeoutListener(mode));
+      timeoutListenerThread = new Thread(() -> cameraCheckListener(mode));
       timeoutListenerThread.start();
     }
   }
@@ -87,7 +85,6 @@ public class MiniView {
       switch (event.getActionMasked()) {
         case MotionEvent.ACTION_OUTSIDE:
           clientView.lastTouchIsInside = false;
-          lastTouchOutsideTime = System.currentTimeMillis();
           break;
         case MotionEvent.ACTION_DOWN: {
           clientView.lastTouchIsInside = true;
@@ -112,19 +109,31 @@ public class MiniView {
     });
   }
 
-  // 超时监听
-  private void timeoutListener(int mode) {
+  // ====================== 相机前台检测逻辑（替换5秒恢复） ======================
+  private void cameraCheckListener(int mode) {
     try {
-      long now;
       while (!Thread.interrupted()) {
-        Thread.sleep(1);
-        now = System.currentTimeMillis();
-        if (now - lastTouchOutsideTime > 5000) {
-          if (mode == 1) AppData.uiHandler.post(clientView::changeToSmall);
-          else if (mode == 2) AppData.uiHandler.post(clientView::changeToFull);
+        Thread.sleep(500); // 每0.5秒检测一次
+        if (isCameraRunningForeground()) {
+          AppData.uiHandler.post(() -> {
+            if (mode == 1) clientView.changeToSmall();
+            else if (mode == 2) clientView.changeToFull();
+          });
           return;
         }
       }
     } catch (Exception ignored) {}
   }
+
+  // 判断相机是否在前台
+  private boolean isCameraRunningForeground() {
+    try {
+      Process process = Runtime.getRuntime().exec("adb shell dumpsys window | grep mCurrentFocus | grep com.android.camera");
+      int result = process.waitFor();
+      return result == 0;
+    } catch (Exception e) {
+      return false;
+    }
+  }
+  // ==========================================================================
 }
