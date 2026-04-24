@@ -140,24 +140,45 @@ public class MiniView {
 
 private String getForegroundPackage() {
     try {
-        String result = clientView.getClient().adb.runAdbCmd("dumpsys activity activities");
-        if (result == null || result.isEmpty()) return null;
-        // 查找 "mResumedActivity" 行
+        // 执行完整 dumpsys window 命令（不用 grep）
+        String result = clientView.getClient().adb.runAdbCmd("dumpsys window");
+        if (result == null || result.isEmpty()) {
+            PublicTools.logToast("命令返回空");
+            return null;
+        }
+        // 按行查找 mCurrentFocus
         String[] lines = result.split("\n");
         for (String line : lines) {
-            if (line.contains("mResumedActivity")) {
-                // 示例: mResumedActivity: ActivityRecord{abc123 u0 com.android.camera/.Camera t123}
-                int start = line.indexOf("u0 ");
-                if (start == -1) continue;
-                start += 3;
+            if (line.contains("mCurrentFocus")) {
+                // 提取包名：找到 u0 后跟包名
+                int idx = line.indexOf("u0");
+                if (idx == -1) continue;
+                // 从 u0 后面开始解析，跳过空格和大括号
+                int start = idx + 2;
+                while (start < line.length() && (line.charAt(start) == ' ' || line.charAt(start) == '{')) {
+                    start++;
+                }
                 int end = line.indexOf("/", start);
                 if (end == -1) continue;
                 String pkg = line.substring(start, end);
-                PublicTools.logToast("检测到前台包名: " + pkg);
+                PublicTools.logToast("前台包名: " + pkg);
                 return pkg;
             }
         }
-        PublicTools.logToast("未找到前台Activity");
+        // 如果找不到 mCurrentFocus，再尝试找 mFocusedApp 或 mFocusedWindow
+        for (String line : lines) {
+            if (line.contains("mFocusedApp") || line.contains("mFocusedWindow")) {
+                // 类似格式中提取包名
+                java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("u0\\s+([\\w.]+)/");
+                java.util.regex.Matcher matcher = pattern.matcher(line);
+                if (matcher.find()) {
+                    String pkg = matcher.group(1);
+                    PublicTools.logToast("前台包名(备选): " + pkg);
+                    return pkg;
+                }
+            }
+        }
+        PublicTools.logToast("未找到焦点信息");
     } catch (Exception e) {
         e.printStackTrace();
         PublicTools.logToast("异常: " + e.getMessage());
