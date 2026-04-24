@@ -36,6 +36,14 @@ public class ClientView implements TextureView.SurfaceTextureListener {
   public final PublicTools.MyFunction onClose;
   public final TextureView textureView;
   private SurfaceTexture surfaceTexture;
+  private Client client;
+  public void setClient(Client client) {
+    this.client = client;
+}
+
+public Client getClient() {
+    return client;
+}
 
   private final SmallView smallView;
   private final MiniView miniView;
