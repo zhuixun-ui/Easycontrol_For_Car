@@ -10,6 +10,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import top.eiyooooo.easycontrol.app.entity.AppData;
@@ -69,7 +71,7 @@ public class MiniView {
   public void hide() {
     try {
       miniView.getRoot().setVisibility(View.GONE);
-      AppData.windowManager.removeView(miniView.getRoot());
+      AppData.windowManager.removeView(miniView.getRoot(), miniViewParams);
       clientView.updateDevice();
       if (timeoutListenerThread != null) timeoutListenerThread.interrupt();
     } catch (Exception ignored) {
@@ -109,22 +111,53 @@ public class MiniView {
     });
   }
 
-  // ====================== 检测【被控端】相机 前台运行 ======================
+  // ====================== 检测被控端相机前台（完全兼容版） ======================
   private void cameraCheckListener(int mode) {
     try {
       while (!Thread.interrupted()) {
         Thread.sleep(500);
-        // 通过已连接的ADB通道，查询被控端前台应用
-        String result = clientView.adbClient.execCmd("dumpsys window | grep mCurrentFocus");
+        // 直接用 Runtime.exec 执行ADB命令，不依赖任何项目内部变量
+        String result = execAdbCommand("dumpsys window | grep mCurrentFocus");
         if (result != null && result.contains("com.android.camera")) {
           AppData.uiHandler.post(() -> {
             if (mode == 1) clientView.changeToSmall();
             else if (mode == 2) clientView.changeToFull();
           });
-          break;
+          return;
         }
       }
     } catch (Exception ignored) {}
   }
-  // ======================================================================
+
+  // 安全的ADB命令执行封装（不依赖项目内部变量）
+  private String execAdbCommand(String cmd) {
+    Process process = null;
+    BufferedReader reader = null;
+    try {
+      // 项目中adb文件的路径
+      String adbPath = AppData.main.getApplicationInfo().dataDir + "/adb";
+      // 执行ADB命令，指定被控设备地址
+      process = Runtime.getRuntime().exec(new String[]{
+              adbPath,
+              "-s",
+              clientView.device.address,
+              "shell",
+              cmd
+      });
+      reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      StringBuilder output = new StringBuilder();
+      String line;
+      while ((line = reader.readLine()) != null) {
+        output.append(line);
+      }
+      process.waitFor();
+      return output.toString();
+    } catch (Exception e) {
+      return null;
+    } finally {
+      if (reader != null) try { reader.close(); } catch (Exception ignored) {}
+      if (process != null) process.destroy();
+    }
+  }
+  // ==============================================================================
 }
