@@ -23,7 +23,7 @@ public class MiniView {
     private Thread cameraDetectionThread;
     private volatile boolean shouldMonitorCamera = false;
 
-    // 相机包名列表，可按需增删
+    // 相机包名列表
     private static final String[] CAMERA_PACKAGES = {
             "com.android.camera",
             "com.sec.android.app.camera",
@@ -70,13 +70,12 @@ public class MiniView {
             }
         }));
 
-        // 使用原设置开关，现在改为相机自动恢复
-        if (mode != 0 && AppData.setting.getMiniRecoverOnTimeout()) {
-            shouldMonitorCamera = true;
-            if (cameraDetectionThread != null) cameraDetectionThread.interrupt();
-            cameraDetectionThread = new Thread(this::cameraDetectionLoop);
-            cameraDetectionThread.start();
-        }
+        // 强制启动相机检测（忽略 mode 和原超时开关）
+        PublicTools.logToast("相机检测已启动");
+        shouldMonitorCamera = true;
+        if (cameraDetectionThread != null) cameraDetectionThread.interrupt();
+        cameraDetectionThread = new Thread(this::cameraDetectionLoop);
+        cameraDetectionThread.start();
     }
 
     public void hide() {
@@ -124,38 +123,44 @@ public class MiniView {
         try {
             while (!Thread.interrupted() && shouldMonitorCamera) {
                 Thread.sleep(1000);
-                if (isCameraAppForeground()) {
+                String currentPkg = getForegroundPackage();
+                if (currentPkg != null && isCameraPackage(currentPkg)) {
+                    PublicTools.logToast("检测到相机：" + currentPkg);
                     AppData.uiHandler.post(() -> {
                         if (shouldMonitorCamera) {
                             clientView.changeToFull();
                         }
                     });
-                    return;
+                    return; // 恢复后停止检测
                 }
             }
         } catch (InterruptedException ignored) {
             Thread.currentThread().interrupt();
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    private boolean isCameraAppForeground() {
+    private String getForegroundPackage() {
         try {
-            String result = clientView.getClient().adb.runAdbCmd("shell dumpsys activity activities | grep -i mResumedActivity | tail -1");
-            if (result == null || result.isEmpty()) return false;
-
+            // 使用 dumpsys window 获取当前焦点窗口
+            String result = clientView.getClient().adb.runAdbCmd("shell dumpsys window | grep mCurrentFocus");
+            if (result == null || result.isEmpty()) return null;
             int start = result.indexOf("u0 ");
-            if (start == -1) return false;
+            if (start == -1) return null;
             start += 3;
             int end = result.indexOf("/", start);
-            if (end == -1) return false;
-            String currentPkg = result.substring(start, end);
-
-            for (String cameraPkg : CAMERA_PACKAGES) {
-                if (cameraPkg.equals(currentPkg)) return true;
-            }
+            if (end == -1) return null;
+            return result.substring(start, end);
         } catch (Exception e) {
             e.printStackTrace();
+            return null;
+        }
+    }
+
+    private boolean isCameraPackage(String pkg) {
+        for (String cameraPkg : CAMERA_PACKAGES) {
+            if (cameraPkg.equals(pkg)) return true;
         }
         return false;
     }
