@@ -140,56 +140,29 @@ public class MiniView {
 
 private String getForegroundPackage() {
     try {
-        String result = clientView.getClient().adb.runAdbCmd("dumpsys window mCurrentFocus");
-        if (result == null || result.isEmpty()) {
-            PublicTools.logToast("命令返回空");
-            return null;
-        }
-        
-        // 将原始输出写入文件（方便查看）
-        try {
-            java.io.FileWriter fw = new java.io.FileWriter(AppData.main.getExternalFilesDir(null) + "/dump_focus.txt");
-            fw.write(result);
-            fw.close();
-            PublicTools.logToast("已写入文件: dump_focus.txt");
-        } catch (Exception e) {
-            PublicTools.logToast("写文件失败: " + e.getMessage());
-        }
-        
-        // 增强解析：尝试多种方式提取包名
-        String pkg = null;
-        // 方式1：查找 u0 和 / 之间的内容
-        int idx = result.indexOf("u0");
-        if (idx != -1) {
-            int start = idx + 2;
-            // 跳过空格或 {
-            while (start < result.length() && (result.charAt(start) == ' ' || result.charAt(start) == '{')) start++;
-            int end = result.indexOf("/", start);
-            if (end != -1) {
-                pkg = result.substring(start, end);
+        String result = clientView.getClient().adb.runAdbCmd("dumpsys activity activities");
+        if (result == null || result.isEmpty()) return null;
+        // 查找 "mResumedActivity" 行
+        String[] lines = result.split("\n");
+        for (String line : lines) {
+            if (line.contains("mResumedActivity")) {
+                // 示例: mResumedActivity: ActivityRecord{abc123 u0 com.android.camera/.Camera t123}
+                int start = line.indexOf("u0 ");
+                if (start == -1) continue;
+                start += 3;
+                int end = line.indexOf("/", start);
+                if (end == -1) continue;
+                String pkg = line.substring(start, end);
+                PublicTools.logToast("检测到前台包名: " + pkg);
+                return pkg;
             }
         }
-        // 方式2：如果上面没找到，尝试正则匹配 Window{... u0 xxx/...
-        if (pkg == null) {
-            java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("u0\\s+([\\w.]+)/");
-            java.util.regex.Matcher matcher = pattern.matcher(result);
-            if (matcher.find()) {
-                pkg = matcher.group(1);
-            }
-        }
-        
-        if (pkg != null) {
-            PublicTools.logToast("提取包名: " + pkg);
-            return pkg;
-        } else {
-            PublicTools.logToast("解析失败, 原始内容已写入文件");
-            return null;
-        }
+        PublicTools.logToast("未找到前台Activity");
     } catch (Exception e) {
         e.printStackTrace();
         PublicTools.logToast("异常: " + e.getMessage());
-        return null;
     }
+    return null;
 }
 
     private boolean isCameraPackage(String pkg) {
