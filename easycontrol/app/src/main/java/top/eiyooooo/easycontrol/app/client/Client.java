@@ -88,6 +88,7 @@ public class Client {
       executeStreamVideoThread.start();
       AppData.uiHandler.post(this::executeOtherService);
     }, () -> release(null));
+    clientView.setClient(this);
     Pair<View, WindowManager.LayoutParams> loading = PublicTools.createLoading(AppData.main);
     // 连接
     loadingTimeOutThread = new Thread(() -> {
