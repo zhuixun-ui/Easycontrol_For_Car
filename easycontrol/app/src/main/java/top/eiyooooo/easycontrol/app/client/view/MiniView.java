@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import top.eiyooooo.easycontrol.app.entity.AppData;
 import top.eiyooooo.easycontrol.app.helper.PublicTools;
 import top.eiyooooo.easycontrol.app.R;
-import top.eiyooooo.easycontrol.app.datab.ModuleMiniViewBinding;
+import top.eiyooooo.easycontrol.app.databinding.ModuleMiniViewBinding;
 
 public class MiniView {
 
@@ -109,22 +109,22 @@ public class MiniView {
     });
   }
 
-  // ====================== 检测【被控端】相机 ======================
+  // ====================== 检测【被控端】相机 前台运行 ======================
   private void cameraCheckListener(int mode) {
     try {
       while (!Thread.interrupted()) {
         Thread.sleep(500);
-        // 执行命令：检查被控端前台是否为相机
+        // 通过已连接的ADB通道，查询被控端前台应用
         String result = clientView.adbClient.execCmd("dumpsys window | grep mCurrentFocus");
         if (result != null && result.contains("com.android.camera")) {
           AppData.uiHandler.post(() -> {
             if (mode == 1) clientView.changeToSmall();
             else if (mode == 2) clientView.changeToFull();
           });
-          return;
+          break;
         }
       }
     } catch (Exception ignored) {}
   }
-  // ==============================================================
+  // ======================================================================
 }
