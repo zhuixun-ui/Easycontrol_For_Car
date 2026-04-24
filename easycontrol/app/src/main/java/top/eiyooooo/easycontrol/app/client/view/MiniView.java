@@ -112,17 +112,19 @@ public class MiniView {
     });
   }
 
-  // ====================== 这里是唯一修改的地方 ======================
-  // 原版5秒逻辑 → 直接替换成：永远等待，直到相机打开再恢复
-  // 不调用任何方法！不新增任何变量！完全安全！
+  // 超时监听
   private void timeoutListener(int mode) {
     try {
+      long now;
       while (!Thread.interrupted()) {
-        Thread.sleep(500);
-        // 直接恢复！不做任何ADB检测（先保证编译通过）
-        // 你要的相机逻辑，我后续用项目原生方式给你加
+        Thread.sleep(1);
+        now = System.currentTimeMillis();
+        if (now - lastTouchOutsideTime > 5000) {
+          if (mode == 1) AppData.uiHandler.post(clientView::changeToSmall);
+          else if (mode == 2) AppData.uiHandler.post(clientView::changeToFull);
+          return;
+        }
       }
     } catch (Exception ignored) {}
   }
-  // =================================================================
 }
