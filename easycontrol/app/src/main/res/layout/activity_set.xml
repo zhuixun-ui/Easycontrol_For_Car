@@ -94,7 +94,7 @@
     android:layout_marginStart="20dp"
     android:layout_marginTop="12dp"
     android:layout_marginBottom="5dp"
-    android:text="相机检测"
+    android:text="倒车app检测"
     android:textColor="@color/onBackground"
     android:textSize="@dimen/middleFont" />
 
@@ -116,9 +116,12 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:textColor="@android:color/white"
+            android:textColorHint="@android:color/darker_gray"
             android:hint="应用包名，多个用逗号分隔"
             android:inputType="textNoSuggestions"
             android:singleLine="true" />
+      
 
         <Button
             android:id="@+id/btn_test_package"
