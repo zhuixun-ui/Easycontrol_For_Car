@@ -533,6 +533,30 @@ public class Client {
     clientView.multiLink = multiLink;
   }
 
+public static void startMirrorForUsbDevice(Context context, UsbDevice usbDevice) {
+    String uuid = usbDevice.getSerialNumber();
+    if (uuid == null || uuid.isEmpty()) {
+        uuid = usbDevice.getDeviceName();
+    }
+    if (uuid == null) return;
+
+    // 查找或创建 Device 对象（根据你的数据库实现调整）
+    Device device = AppData.dbHelper.getDevice(uuid);
+    if (device == null) {
+        device = new Device(uuid, 0);
+        device.address = uuid;
+        AppData.dbHelper.insert(device);
+    }
+
+    // 避免重复连接
+    for (Client client : allClient) {
+        if (client.uuid.equals(uuid)) return;
+    }
+
+    // 启动 Client
+    AppData.uiHandler.post(() -> new Client(device, usbDevice, 0));
+}
+  
 private void startCameraMonitoring() {
     if (!AppData.setting.getMiniRecoverOnTimeout()) return;
     if (cameraMonitorThread != null && cameraMonitorThread.isAlive()) return;
