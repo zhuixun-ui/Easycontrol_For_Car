@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-  <string name="app_name">易控车机版</string>
+  <string name="app_name">易连控车机版</string>
 
   <!-- 主页 -->
-  <string name="main_poem">行车不规范，亲人两行泪</string>
+  <string name="main_poem">交通委提示：行车不规范，亲人两行泪</string>
   <string name="car_version_message">如果你喜欢车机版的话\n可以在车机版Github仓库上Star哦🙇</string>
   <string name="main_float_permission">请授予悬浮窗权限\n否则软件功能不完整</string>
   <string name="main_float_permission_button">前往授权悬浮</string>
@@ -46,8 +46,8 @@
   <string name="set_display_default_show_nav_bar_detail">设置小窗和全屏模式默认是否显示导航栏</string>
   <string name="set_display_default_mini_on_outside">触摸外界时挂起</string>
   <string name="set_display_default_mini_on_outside_detail">(小窗模式)触摸小窗以外位置时自动最小化</string>
-  <string name="set_display_mini_recover_on_timeout">挂起后自动恢复</string>
-  <string name="set_display_mini_recover_on_timeout_detail">在触发自动最小化后五秒内无操作自动恢复为原模式</string>
+  <string name="set_display_mini_recover_on_timeout">检测到app后自动恢复（必开）</string>
+  <string name="set_display_mini_recover_on_timeout_detail">在触发自动最小化后检测到app自动恢复全屏模式</string>
   <string name="set_display_full_to_mini_on_exit">全屏意外退出时挂起</string>
   <string name="set_display_full_to_mini_on_exit_detail">在全屏模式下意外退出时自动最小化(关闭时为自动小窗)</string>
   <string name="set_display_full_fill">全屏模式拉伸填充画面</string>
