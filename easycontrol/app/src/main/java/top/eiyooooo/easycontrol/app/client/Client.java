@@ -9,7 +9,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Pair;
 import android.content.Intent;
-import android.content.Context;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -534,22 +533,6 @@ public class Client {
     clientView.multiLink = multiLink;
   }
 
-public static void startMirrorForUsbDevice(Context context, UsbDevice usbDevice) {
-    String uuid = usbDevice.getSerialNumber();
-    if (uuid == null || uuid.isEmpty()) {
-        uuid = usbDevice.getDeviceName();
-    }
-    if (uuid == null) return;
-
-    Device device = new Device(uuid, 0);
-    device.address = uuid;
-
-    for (Client client : allClient) {
-        if (client.uuid.equals(uuid)) return;
-    }
-
-    AppData.uiHandler.post(() -> new Client(device, usbDevice, 0));
-}
   
 private void startCameraMonitoring() {
     if (!AppData.setting.getMiniRecoverOnTimeout()) return;
