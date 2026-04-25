@@ -552,11 +552,15 @@ private void startCameraMonitoring() {
                 } else if (!isCamera && isCameraForeground) {
                     isCameraForeground = false;
                     AppData.uiHandler.post(() -> {
-                        if (clientView != null && isCameraMonitoring) {
-                            clientView.changeToMini(0); // 退出相机后恢复到小窗，你也可以改为 clientView.changeToMini(0)
+                      if (clientView != null && isCameraMonitoring) {
+                          clientView.changeToMini(0); // 回到迷你悬浮窗
+                        // 关闭软件主界面（设备列表页）
+                          if (AppData.activity != null && !AppData.activity.isFinishing()) {
+                              AppData.activity.finish();
+                          }
                         }
-                    });
-                }
+                      });
+                  }
             } catch (InterruptedException e) {
                 break;
             } catch (Exception e) {
