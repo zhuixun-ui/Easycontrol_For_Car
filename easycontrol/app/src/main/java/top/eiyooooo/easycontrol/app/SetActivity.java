@@ -6,6 +6,11 @@ import android.os.Bundle;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
+import android.widget.EditText;
+import android.widget.Button;
+import android.widget.TextView;
+import top.eiyooooo.easycontrol.app.client.Client;
+
 import top.eiyooooo.easycontrol.app.entity.AppData;
 import top.eiyooooo.easycontrol.app.helper.PublicTools;
 import top.eiyooooo.easycontrol.app.databinding.ActivitySetBinding;
@@ -29,6 +34,21 @@ public class SetActivity extends Activity {
     setButtonListener();
   }
 
+    @Override
+  protected void onPause() {
+      super.onPause();
+      EditText etCameraPackage = findViewById(R.id.et_camera_package);
+      if (etCameraPackage != null) {
+          String cameraPkg = etCameraPackage.getText().toString().trim();
+          // 只在非空时校验格式
+          if (!cameraPkg.isEmpty() && !cameraPkg.matches("[a-zA-Z0-9._]+(,[a-zA-Z0-9._]+)*")) {
+              // 格式错误时可提示，但不保存
+              return;
+          }
+          AppData.setting.setCustomCameraPackage(cameraPkg);
+      }
+  }
+  
   private void testCameraPackage(EditText et, TextView hint) {
       String input = et.getText().toString().trim();
       if (input.isEmpty()) {
