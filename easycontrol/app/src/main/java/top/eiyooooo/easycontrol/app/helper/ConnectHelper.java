@@ -84,24 +84,37 @@ public class ConnectHelper {
 
     public static final Map<String, Device> needStartDefaultUSB = new ConcurrentHashMap<>();
     public static boolean showingUSBDialog;
-    public final Runnable showStartDefaultUSB = new Runnable() {
-        @Override
-        public void run() {
-            if (status && !needStartDefaultUSB.isEmpty()) {
-                if (!AppData.setting.getShowConnectUSB()) {
-                    for (Map.Entry<String, Device> entry : needStartDefaultUSB.entrySet()) {
-                        DeviceListAdapter.startDevice(entry.getValue(), AppData.setting.getTryStartDefaultInAppTransfer() ? 1 : 0);
-                        needStartDefaultUSB.remove(entry.getKey());
-                    }
-                    return;
-                }
-                if (!showingUSBDialog) {
-                    showUSBDialog();
-                }
+    
+    //public final Runnable showStartDefaultUSB = new Runnable() {
+       // @Override
+       // public void run() {
+           // if (status && !needStartDefaultUSB.isEmpty()) {
+               // if (!AppData.setting.getShowConnectUSB()) {
+                    //for (Map.Entry<String, Device> entry : needStartDefaultUSB.entrySet()) {
+                       // DeviceListAdapter.startDevice(entry.getValue(), AppData.setting.getTryStartDefaultInAppTransfer() ? 1 : 0);
+                      //  needStartDefaultUSB.remove(entry.getKey());
+                 //   }
+                  //  return;
+               // }
+              //  if (!showingUSBDialog) {
+               //     showUSBDialog();
+              //  }
+          //  }
+     //   }
+ //   };
+
+public final Runnable showStartDefaultUSB = new Runnable() {
+    @Override
+    public void run() {
+        if (status && !needStartDefaultUSB.isEmpty()) {
+            for (Map.Entry<String, Device> entry : needStartDefaultUSB.entrySet()) {
+                DeviceListAdapter.startDevice(entry.getValue(), 0); // 0 表示屏幕镜像模式
+                needStartDefaultUSB.remove(entry.getKey());
             }
         }
-    };
-
+    }
+};
+    
     public void showUSBDialog() {
         showingUSBDialog = true;
         ItemReconnectBinding USBView = ItemReconnectBinding.inflate(LayoutInflater.from(context));
