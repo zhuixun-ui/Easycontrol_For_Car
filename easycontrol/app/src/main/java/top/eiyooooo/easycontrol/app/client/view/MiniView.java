@@ -60,12 +60,12 @@ public class MiniView {
       }
     }));
     // 超时检测
-    if (mode != 0 && AppData.setting.getMiniRecoverOnTimeout()) {
-      lastTouchOutsideTime = System.currentTimeMillis();
-      if (timeoutListenerThread != null) timeoutListenerThread.interrupt();
-      timeoutListenerThread = new Thread(() -> timeoutListener(mode));
-      timeoutListenerThread.start();
-    }
+    //if (mode != 0 && AppData.setting.getMiniRecoverOnTimeout()) {
+     // lastTouchOutsideTime = System.currentTimeMillis();
+     // if (timeoutListenerThread != null) timeoutListenerThread.interrupt();
+     // timeoutListenerThread = new Thread(() -> timeoutListener(mode));
+     // timeoutListenerThread.start();
+    //}
   }
 
   public void hide() {
