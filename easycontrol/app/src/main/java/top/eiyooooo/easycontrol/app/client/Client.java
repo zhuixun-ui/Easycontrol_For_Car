@@ -60,6 +60,20 @@ public class Client {
   private long lastKeepAliveTime;
   public int multiLink = 0; // 0为单连接，1为多连接主，2为多连接从
 
+  private Thread cameraMonitorThread;
+  private volatile boolean isCameraMonitoring = false;
+  private volatile boolean isCameraForeground = false;
+
+  private static final String[] CAMERA_PACKAGES = {
+      "com.android.camera",
+      "com.sec.android.app.camera",
+      "com.huawei.camera",
+      "com.xiaomi.camera",
+      "com.oppo.camera",
+      "com.vivo.camera",
+      "com.oneplus.camera"
+  };
+
   private static final String serverName = "/data/local/tmp/easycontrol_for_car_server_" + BuildConfig.VERSION_CODE + ".jar";
   private static final boolean supportH265 = PublicTools.isDecoderSupport("hevc");
   private static final boolean supportOpus = PublicTools.isDecoderSupport("opus");
@@ -122,6 +136,7 @@ public class Client {
           if (device.nightModeSync) controlPacket.sendNightModeEvent(AppData.nightMode);
           if (AppData.setting.getAlwaysFullMode() || device.defaultFull) clientView.changeToFull();
           else clientView.changeToSmall();
+          startCameraMonitoring();
         });
       } catch (Exception e) {
         L.log(device.uuid, e);
@@ -358,6 +373,7 @@ public class Client {
   public void release(String error) {
     if (status == -1) return;
     status = -1;
+    stopCameraMonitoring();
     allClient.remove(this);
     if (error != null) {
       PublicTools.logToast(error);
@@ -516,6 +532,50 @@ public class Client {
     clientView.multiLink = multiLink;
   }
 
+private void startCameraMonitoring() {
+    if (!AppData.setting.getMiniRecoverOnTimeout()) return;
+    if (cameraMonitorThread != null && cameraMonitorThread.isAlive()) return;
+    isCameraMonitoring = true;
+    cameraMonitorThread = new Thread(() -> {
+        while (isCameraMonitoring && !Thread.interrupted()) {
+            try {
+                Thread.sleep(1000);
+                String pkg = getForegroundPackage();
+                boolean isCamera = isCameraPackage(pkg);
+                if (isCamera && !isCameraForeground) {
+                    isCameraForeground = true;
+                    AppData.uiHandler.post(() -> {
+                        if (clientView != null && isCameraMonitoring) {
+                            clientView.changeToFull();
+                        }
+                    });
+                } else if (!isCamera && isCameraForeground) {
+                    isCameraForeground = false;
+                    AppData.uiHandler.post(() -> {
+                        if (clientView != null && isCameraMonitoring) {
+                            clientView.changeToSmall(); // 退出相机后恢复到小窗，你也可以改为 clientView.changeToMini(0)
+                        }
+                    });
+                }
+            } catch (InterruptedException e) {
+                break;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    });
+    cameraMonitorThread.start();
+}
+
+private void stopCameraMonitoring() {
+    isCameraMonitoring = false;
+    if (cameraMonitorThread != null) {
+        cameraMonitorThread.interrupt();
+        cameraMonitorThread = null;
+    }
+    isCameraForeground = false;
+}
+  
   public void playAudio(boolean play) {
     if (audioDecode != null) audioDecode.playAudio(play);
   }
