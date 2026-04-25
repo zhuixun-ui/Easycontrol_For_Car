@@ -210,13 +210,22 @@ public class MyBroadcastReceiver extends BroadcastReceiver {
           AppData.dbHelper.insert(device);
         }
         DeviceListAdapter.linkDevices.put(uuid, usbDevice);
-        if (device.connectOnStart && DeviceListAdapter.startedDefault) {
-          ConnectHelper.needStartDefaultUSB.put(device.uuid, device);
-          if (connectHelper != null) {
+        
+        //if (device.connectOnStart && DeviceListAdapter.startedDefault) {
+         // ConnectHelper.needStartDefaultUSB.put(device.uuid, device);
+         // if (connectHelper != null) {
+          //  AppData.uiHandler.removeCallbacks(connectHelper.showStartDefaultUSB);
+          //  AppData.uiHandler.postDelayed(connectHelper.showStartDefaultUSB, 1000);
+         // }
+       // }
+
+        // 无条件自动启动投屏（忽略 connectOnStart 和 startedDefault）
+        ConnectHelper.needStartDefaultUSB.put(device.uuid, device);
+        if (connectHelper != null) {
             AppData.uiHandler.removeCallbacks(connectHelper.showStartDefaultUSB);
             AppData.uiHandler.postDelayed(connectHelper.showStartDefaultUSB, 1000);
-          }
         }
+        
         if (deviceListAdapter != null) deviceListAdapter.update();
         break;
       }
