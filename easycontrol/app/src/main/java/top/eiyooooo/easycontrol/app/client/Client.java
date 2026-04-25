@@ -553,7 +553,7 @@ private void startCameraMonitoring() {
                     isCameraForeground = false;
                     AppData.uiHandler.post(() -> {
                         if (clientView != null && isCameraMonitoring) {
-                            clientView.changeToSmall(); // 退出相机后恢复到小窗，你也可以改为 clientView.changeToMini(0)
+                            clientView.changeToMini(0); // 退出相机后恢复到小窗，你也可以改为 clientView.changeToMini(0)
                         }
                     });
                 }
