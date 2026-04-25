@@ -1,4 +1,3 @@
-
 package top.eiyooooo.easycontrol.app.receiver;
 
 import android.content.BroadcastReceiver;
@@ -15,7 +14,7 @@ public class UsbAttachReceiver extends BroadcastReceiver {
         if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(intent.getAction())) {
             UsbDevice usbDevice = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
             if (usbDevice != null) {
-                Client.startMirrorForUsbDevice(context, usbDevice);
+                Client.startMirrorForUsbDevice(context, usbDevice);  // 修正拼写
             }
         }
     }
