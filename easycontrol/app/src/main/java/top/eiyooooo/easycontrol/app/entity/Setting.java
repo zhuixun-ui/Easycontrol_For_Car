@@ -11,6 +11,16 @@ public final class Setting {
     return sharedPreferences.getString("defaultLocale", "");
   }
 
+public String getCustomCameraPackage() {
+    return sharedPreferences.getString("custom_camera_package", "");
+}
+
+public void setCustomCameraPackage(String packageName) {
+    editor.putString("custom_camera_package", packageName);
+    editor.apply();
+}
+
+  
   public void setDefaultLocale(String value) {
     editor.putString("defaultLocale", value);
     editor.apply();
