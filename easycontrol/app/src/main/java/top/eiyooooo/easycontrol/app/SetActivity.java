@@ -29,6 +29,51 @@ public class SetActivity extends Activity {
     setButtonListener();
   }
 
+  private void testCameraPackage(EditText et, TextView hint) {
+      String input = et.getText().toString().trim();
+      if (input.isEmpty()) {
+          hint.setText("❌ 包名不能为空");
+          hint.setTextColor(getColor(R.color.red));
+          return;
+      }
+      if (!input.matches("[a-zA-Z0-9._]+(,[a-zA-Z0-9._]+)*")) {
+          hint.setText("❌ 格式错误：只能包含字母、数字、点、下划线，多个用逗号分隔");
+          hint.setTextColor(getColor(R.color.red));
+          return;
+      }
+      if (Client.allClient.isEmpty()) {
+          hint.setText("⚠️ 没有已连接的设备，请先连接后再测试");
+          hint.setTextColor(getColor(R.color.orange));
+          return;
+      }
+      Client client = Client.allClient.get(0);
+      new Thread(() -> {
+          String currentPkg = client.getForegroundPackage();
+          AppData.uiHandler.post(() -> {
+              if (currentPkg == null) {
+                  hint.setText("❌ 无法获取当前前台应用，请确保设备已授权");
+                  hint.setTextColor(getColor(R.color.red));
+                  return;
+              }
+              String[] targetPkgs = input.split(",");
+              boolean matched = false;
+              for (String pkg : targetPkgs) {
+                  if (pkg.trim().equals(currentPkg)) {
+                      matched = true;
+                      break;
+                  }
+              }
+              if (matched) {
+                  hint.setText("✅ 正确！当前前台包名：" + currentPkg);
+                  hint.setTextColor(getColor(R.color.green));
+              } else {
+                  hint.setText("❌ 不匹配！当前前台包名：" + currentPkg);
+                  hint.setTextColor(getColor(R.color.red));
+              }
+          });
+      }).start();
+  }
+  
   // 设置默认值
   private void drawUi() {
     // 默认参数
