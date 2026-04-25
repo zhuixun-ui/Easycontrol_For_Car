@@ -550,17 +550,15 @@ private void startCameraMonitoring() {
                         }
                     });
                 } else if (!isCamera && isCameraForeground) {
-                    isCameraForeground = false;
-                    AppData.uiHandler.post(() -> {
-                        if (clientView != null && isCameraMonitoring) {
+                isCameraForeground = false;
+                AppData.uiHandler.post(() -> {
+                    if (clientView != null && isCameraMonitoring) {
                         clientView.changeToMini(0); // 回到迷你悬浮窗
-                        // 关闭软件主界面（设备列表页）
-                        if (AppData.activity != null && AppData.activity instanceof android.app.Activity) {
-                            android.app.Activity act = (android.app.Activity) AppData.activity;
-                            if (!act.isFinishing()) {
-                                act.finish();
-                            }
-                        }
+                        // 模拟 Home 键，回到系统桌面
+                        Intent homeIntent = new Intent(Intent.ACTION_MAIN);
+                        homeIntent.addCategory(Intent.CATEGORY_HOME);
+                        homeIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        AppData.main.startActivity(homeIntent);
                     }
                 });
             }
