@@ -552,15 +552,18 @@ private void startCameraMonitoring() {
                 } else if (!isCamera && isCameraForeground) {
                     isCameraForeground = false;
                     AppData.uiHandler.post(() -> {
-                      if (clientView != null && isCameraMonitoring) {
-                          clientView.changeToMini(0); // 回到迷你悬浮窗
+                        if (clientView != null && isCameraMonitoring) {
+                        clientView.changeToMini(0); // 回到迷你悬浮窗
                         // 关闭软件主界面（设备列表页）
-                          if (AppData.activity != null && !AppData.activity.isFinishing()) {
-                              AppData.activity.finish();
-                          }
+                        if (AppData.activity != null && AppData.activity instanceof android.app.Activity) {
+                            android.app.Activity act = (android.app.Activity) AppData.activity;
+                            if (!act.isFinishing()) {
+                                act.finish();
+                            }
                         }
-                      });
-                  }
+                    }
+                });
+            }
             } catch (InterruptedException e) {
                 break;
             } catch (Exception e) {
