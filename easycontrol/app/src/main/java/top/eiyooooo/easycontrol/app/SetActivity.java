@@ -123,6 +123,19 @@ public class SetActivity extends Activity {
       else if (locale.equals("zh")) AppData.setting.setDefaultLocale("en");
       Toast.makeText(this, getString(R.string.set_other_locale_code), Toast.LENGTH_SHORT).show();
     }).getRoot());
+
+    // 相机检测设置
+    EditText etCameraPackage = findViewById(R.id.et_camera_package);
+    Button btnTestPackage = findViewById(R.id.btn_test_package);
+    TextView tvPackageHint = findViewById(R.id.tv_package_hint);
+    
+    // 加载已保存的自定义包名
+    String savedCameraPackage = AppData.setting.getCustomCameraPackage();
+    etCameraPackage.setText(savedCameraPackage);
+    
+    // 测试按钮点击事件
+    btnTestPackage.setOnClickListener(v -> testCameraPackage(etCameraPackage, tvPackageHint));
+    
     // 关于
     setActivity.setAbout.addView(PublicTools.createTextCard(this, getString(R.string.set_about_website), () -> PublicTools.startUrl(this, "https://github.com/eiyooooo/Easycontrol_For_Car")).getRoot());
     setActivity.setAbout.addView(PublicTools.createTextCard(this, getString(R.string.set_about_how_to_use), () -> PublicTools.openWebViewActivity(this, "file:///android_asset/usage.html")).getRoot());
