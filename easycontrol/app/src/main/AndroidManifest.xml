@@ -66,14 +66,6 @@
       android:hardwareAccelerated="true"
       android:theme="@style/Transparent" />
     
-       <receiver android:name=".receiver.UsbAttachReceiver"
-              android:exported="true">
-        <intent-filter>
-            <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
-        </intent-filter>
-        <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
-                   android:resource="@xml/usb_device_filter" />
-    </receiver>
 
   </application>
 
