@@ -133,10 +133,10 @@ public class Client {
         startServer(device);
         connectServer();
         AppData.uiHandler.post(() -> {
-          if (device.nightModeSync) controlPacket.sendNightModeEvent(AppData.nightMode);
-          if (AppData.setting.getAlwaysFullMode() || device.defaultFull) clientView.changeToFull();
-          else clientView.changeToSmall();
-          startCameraMonitoring();
+            if (device.nightModeSync) controlPacket.sendNightModeEvent(AppData.nightMode);
+            // 连接成功后自动显示迷你悬浮窗
+            clientView.changeToMini(0);
+            startCameraMonitoring();
         });
       } catch (Exception e) {
         L.log(device.uuid, e);
