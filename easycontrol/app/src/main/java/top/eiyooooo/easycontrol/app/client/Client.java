@@ -575,6 +575,41 @@ private void stopCameraMonitoring() {
     }
     isCameraForeground = false;
 }
+
+private String getForegroundPackage() {
+    try {
+        String result = adb.runAdbCmd("dumpsys window");
+        if (result == null) return null;
+        String[] lines = result.split("\n");
+        for (String line : lines) {
+            if (line.contains("mCurrentFocus")) {
+                int idx = line.indexOf("u0");
+                if (idx == -1) continue;
+                int start = idx + 2;
+                while (start < line.length() && (line.charAt(start) == ' ' || line.charAt(start) == '{')) start++;
+                int end = line.indexOf("/", start);
+                if (end == -1) continue;
+                return line.substring(start, end);
+            }
+        }
+        for (String line : lines) {
+            if (line.contains("mFocusedApp")) {
+                java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("u0\\s+([\\w.]+)/");
+                java.util.regex.Matcher matcher = pattern.matcher(line);
+                if (matcher.find()) return matcher.group(1);
+            }
+        }
+    } catch (Exception e) {}
+    return null;
+}
+
+private boolean isCameraPackage(String pkg) {
+    if (pkg == null) return false;
+    for (String cp : CAMERA_PACKAGES) {
+        if (cp.equals(pkg)) return true;
+    }
+    return false;
+}
   
   public void playAudio(boolean play) {
     if (audioDecode != null) audioDecode.playAudio(play);
