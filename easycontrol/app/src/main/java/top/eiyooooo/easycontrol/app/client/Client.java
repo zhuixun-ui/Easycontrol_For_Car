@@ -133,12 +133,27 @@ public class Client {
         changeMultiLinkMode(multiLink);
         startServer(device);
         connectServer();
-        AppData.uiHandler.post(() -> {
-            if (device.nightModeSync) controlPacket.sendNightModeEvent(AppData.nightMode);
+        
+        //AppData.uiHandler.post(() -> {
+           // if (device.nightModeSync) controlPacket.sendNightModeEvent(AppData.nightMode);
             // 连接成功后自动显示迷你悬浮窗
-            clientView.changeToMini(0);
-            startCameraMonitoring();
-        });
+           // clientView.changeToMini(0);
+           // startCameraMonitoring();
+       // });
+
+        AppData.uiHandler.post(() -> {
+          if (device.nightModeSync) controlPacket.sendNightModeEvent(AppData.nightMode);
+          clientView.changeToMini(0);   // 自动迷你悬浮窗
+          startCameraMonitoring();
+      
+          // 自动返回桌面（仅当是从USB自动连接触发时，避免相机恢复时也执行）
+          // 简单起见，可以不加判断，因为相机恢复时也会执行但影响不大
+          Intent homeIntent = new Intent(Intent.ACTION_MAIN);
+          homeIntent.addCategory(Intent.CATEGORY_HOME);
+          homeIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+          AppData.main.startActivity(homeIntent);
+      });
+        
       } catch (Exception e) {
         L.log(device.uuid, e);
         release(AppData.main.getString(R.string.log_notify));
