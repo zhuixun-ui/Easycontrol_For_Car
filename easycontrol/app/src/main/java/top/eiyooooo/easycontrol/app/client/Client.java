@@ -541,20 +541,13 @@ public static void startMirrorForUsbDevice(Context context, UsbDevice usbDevice)
     }
     if (uuid == null) return;
 
-    // 查找或创建 Device 对象（根据你的数据库实现调整）
-    Device device = AppData.dbHelper.getDevice(uuid);
-    if (device == null) {
-        device = new Device(uuid, 0);
-        device.address = uuid;
-        AppData.dbHelper.insert(device);
-    }
+    Device device = new Device(uuid, 0);
+    device.address = uuid;
 
-    // 避免重复连接
     for (Client client : allClient) {
         if (client.uuid.equals(uuid)) return;
     }
 
-    // 启动 Client
     AppData.uiHandler.post(() -> new Client(device, usbDevice, 0));
 }
   
