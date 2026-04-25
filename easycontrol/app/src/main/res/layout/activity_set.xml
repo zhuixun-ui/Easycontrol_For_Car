@@ -112,5 +112,55 @@
         android:showDividers="middle" />
 
     </LinearLayout>
+
+  <TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="20dp"
+    android:layout_marginTop="12dp"
+    android:layout_marginBottom="5dp"
+    android:text="相机检测"
+    android:textColor="@color/onBackground"
+    android:textSize="@dimen/middleFont" />
+
+<LinearLayout
+    android:id="@+id/set_camera_detect"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/background_cron"
+    android:orientation="vertical"
+    android:padding="15dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <EditText
+            android:id="@+id/et_camera_package"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="应用包名，多个用逗号分隔"
+            android:inputType="textNoSuggestions"
+            android:singleLine="true" />
+
+        <Button
+            android:id="@+id/btn_test_package"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="测试" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tv_package_hint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="点击测试可验证包名是否正确"
+        android:textSize="12sp" />
+
+</LinearLayout>
+    
   </ScrollView>
 </LinearLayout>
