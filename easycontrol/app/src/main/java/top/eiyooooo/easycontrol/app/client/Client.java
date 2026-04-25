@@ -598,7 +598,7 @@ private void stopCameraMonitoring() {
     isCameraForeground = false;
 }
 
-private String getForegroundPackage() {
+public String getForegroundPackage() {
     try {
         String result = adb.runAdbCmd("dumpsys window");
         if (result == null) return null;
@@ -625,8 +625,27 @@ private String getForegroundPackage() {
     return null;
 }
 
-private boolean isCameraPackage(String pkg) {
+//private boolean isCameraPackage(String pkg) {
+    //if (pkg == null) return false;
+    //for (String cp : CAMERA_PACKAGES) {
+       // if (cp.equals(pkg)) return true;
+   // }
+    //return false;
+//}
+
+  private boolean isCameraPackage(String pkg) {
     if (pkg == null) return false;
+    
+    // 获取用户自定义的包名（可能包含多个，用逗号分隔）
+    String custom = AppData.setting.getCustomCameraPackage();
+    if (!custom.isEmpty()) {
+        String[] customPkgs = custom.split(",");
+        for (String cp : customPkgs) {
+            if (cp.trim().equals(pkg)) return true;
+        }
+    }
+    
+    // 如果用户没有自定义或未匹配，再检查内置列表
     for (String cp : CAMERA_PACKAGES) {
         if (cp.equals(pkg)) return true;
     }
