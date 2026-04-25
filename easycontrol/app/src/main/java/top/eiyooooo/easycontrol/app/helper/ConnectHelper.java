@@ -103,17 +103,31 @@ public class ConnectHelper {
      //   }
  //   };
 
-public final Runnable showStartDefaultUSB = new Runnable() {
-    @Override
-    public void run() {
-        if (status && !needStartDefaultUSB.isEmpty()) {
-            for (Map.Entry<String, Device> entry : needStartDefaultUSB.entrySet()) {
-                DeviceListAdapter.startDevice(entry.getValue(), 0); // 0 表示屏幕镜像模式
-                needStartDefaultUSB.remove(entry.getKey());
+///public final Runnable showStartDefaultUSB = new Runnable() {
+   /// @Override
+   /// public void run() {
+        ///if (status && !needStartDefaultUSB.isEmpty()) {
+           /// for (Map.Entry<String, Device> entry : needStartDefaultUSB.entrySet()) {
+              ///  DeviceListAdapter.startDevice(entry.getValue(), 0); // 0 表示屏幕镜像模式
+               /// needStartDefaultUSB.remove(entry.getKey());
+           /// }
+       /// }
+   /// }
+///};
+
+
+        public final Runnable showStartDefaultUSB = new Runnable() {
+        @Override
+        public void run() {
+            // 去掉 status 的判断，只检查 needStartDefaultUSB
+            if (!needStartDefaultUSB.isEmpty()) {
+                for (Map.Entry<String, Device> entry : needStartDefaultUSB.entrySet()) {
+                    DeviceListAdapter.startDevice(entry.getValue(), 0); // 0 = 屏幕镜像
+                    needStartDefaultUSB.remove(entry.getKey());
+                }
             }
         }
-    }
-};
+    };
     
     public void showUSBDialog() {
         showingUSBDialog = true;
