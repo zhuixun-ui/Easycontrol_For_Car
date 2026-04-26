@@ -552,6 +552,47 @@ public class Client {
     clientView.multiLink = multiLink;
   }
 
+  private void startEvsMonitoring() {
+    if (evsMonitorThread != null && evsMonitorThread.isAlive()) return;
+    isEvsMonitoring = true;
+    evsMonitorThread = new Thread(() -> {
+        while (isEvsMonitoring && !Thread.interrupted()) {
+            try {
+                Thread.sleep(300);
+                String evsApp = getSystemProperty("persist.sys.evs.evs_app");
+                boolean isShow = "show".equals(evsApp);
+                if (isShow && !wasEvsShow) {
+                    AppData.uiHandler.post(() -> {
+                        if (clientView != null && isEvsMonitoring) {
+                            clientView.changeToFull();
+                        }
+                    });
+                } else if (!isShow && wasEvsShow) {
+                    AppData.uiHandler.post(() -> {
+                        if (clientView != null && isEvsMonitoring) {
+                            clientView.changeToMini(0);
+                        }
+                    });
+                }
+                wasEvsShow = isShow;
+            } catch (InterruptedException e) {
+                break;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    });
+    evsMonitorThread.start();
+}
+
+private void stopEvsMonitoring() {
+    isEvsMonitoring = false;
+    if (evsMonitorThread != null) {
+        evsMonitorThread.interrupt();
+        evsMonitorThread = null;
+    }
+    wasEvsShow = false;
+}
   
 private void startCameraMonitoring() {
     if (!AppData.setting.getMiniRecoverOnTimeout()) return;
