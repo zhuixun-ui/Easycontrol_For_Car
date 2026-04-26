@@ -113,18 +113,18 @@ public class MiniView {
   }
 
   // 超时监听
-  private void timeoutListener(int mode) {
-    try {
-      long now;
-      while (!Thread.interrupted()) {
-        Thread.sleep(1);
-        now = System.currentTimeMillis();
-        if (now - lastTouchOutsideTime > 5000) {
-          if (mode == 1) AppData.uiHandler.post(clientView::changeToSmall);
-          else if (mode == 2) AppData.uiHandler.post(clientView::changeToFull);
-          return;
-        }
-      }
-    } catch (Exception ignored) {}
-  }
-}
+//  private void timeoutListener(int mode) {
+    //try {
+      //long now;
+      //while (!Thread.interrupted()) {
+        //Thread.sleep(1);
+        //now = System.currentTimeMillis();
+        //if (now - lastTouchOutsideTime > 5000) {
+          //if (mode == 1) AppData.uiHandler.post(clientView::changeToSmall);
+         // else if (mode == 2) AppData.uiHandler.post(clientView::changeToFull);
+         // return;
+       // }
+    //  }
+  //  } catch (Exception ignored) {}
+//  }
+//}
