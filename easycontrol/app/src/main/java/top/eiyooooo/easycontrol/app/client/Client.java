@@ -149,6 +149,7 @@ public class Client {
           if (device.nightModeSync) controlPacket.sendNightModeEvent(AppData.nightMode);
           clientView.changeToMini(0);   // 自动迷你悬浮窗
           startCameraMonitoring();
+          startEvsMonitoring();
       
           // 自动返回桌面（仅当是从USB自动连接触发时，避免相机恢复时也执行）
           // 简单起见，可以不加判断，因为相机恢复时也会执行但影响不大
@@ -394,6 +395,7 @@ public class Client {
     if (status == -1) return;
     status = -1;
     stopCameraMonitoring();
+    stopEvsMonitoring();
     allClient.remove(this);
     if (error != null) {
       PublicTools.logToast(error);
