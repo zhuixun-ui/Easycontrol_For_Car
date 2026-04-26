@@ -65,6 +65,10 @@ public class Client {
   private volatile boolean isCameraMonitoring = false;
   private volatile boolean isCameraForeground = false;
 
+  private Thread evsMonitorThread;
+  private volatile boolean isEvsMonitoring = false;
+  private volatile boolean wasEvsShow = false;
+
   private static final String[] CAMERA_PACKAGES = {
       "com.android.camera",
       "com.sec.android.app.camera",
