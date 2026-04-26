@@ -550,7 +550,16 @@ public class Client {
     clientView.multiLink = multiLink;
   }
 
-
+private String getSystemProperty(String property) {
+    try {
+        String result = adb.runAdbCmd("getprop " + property);
+        if (result == null) return null;
+        return result.trim();
+    } catch (Exception e) {
+        e.printStackTrace();
+        return null;
+    }
+}
   
 private void startCameraMonitoring() {
     if (!AppData.setting.getMiniRecoverOnTimeout()) return;
