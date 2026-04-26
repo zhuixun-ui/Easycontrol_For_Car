@@ -569,28 +569,41 @@ private void startCameraMonitoring() {
         while (isCameraMonitoring && !Thread.interrupted()) {
             try {
                 Thread.sleep(1000);
+                
+                // 1. 检测相机包名
                 String pkg = getForegroundPackage();
                 boolean isCamera = isCameraPackage(pkg);
-                if (isCamera && !isCameraForeground) {
+                
+                // 2. 检测倒车或全景（系统属性）
+                boolean isReverseOrPanorama = false;
+                String evsState = getSystemProperty("persist.sys.evs.evs_app");
+                String gearReverse = getSystemProperty("sys.gear.reverse");
+                
+                // 调试日志（可选，测试后可删除）
+                // android.util.Log.d("CarMonitor", "evs=" + evsState + ", gear=" + gearReverse);
+                
+                // 当 evs_app 为 show，或者倒车时（gear_reverse=1），触发全屏
+                if (("show".equalsIgnoreCase(evsState)) || ("1".equals(gearReverse))) {
+                    isReverseOrPanorama = true;
+                }
+                
+                boolean shouldBeFull = isCamera || isReverseOrPanorama;
+                
+                if (shouldBeFull && !isCameraForeground) {
                     isCameraForeground = true;
                     AppData.uiHandler.post(() -> {
                         if (clientView != null && isCameraMonitoring) {
                             clientView.changeToFull();
                         }
                     });
-                } else if (!isCamera && isCameraForeground) {
-                isCameraForeground = false;
-                AppData.uiHandler.post(() -> {
-                    if (clientView != null && isCameraMonitoring) {
-                        clientView.changeToMini(0); // 回到迷你悬浮窗
-                        // 模拟 Home 键，回到系统桌面
-                        Intent homeIntent = new Intent(Intent.ACTION_MAIN);
-                        homeIntent.addCategory(Intent.CATEGORY_HOME);
-                        homeIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        AppData.main.startActivity(homeIntent);
-                    }
-                });
-            }
+                } else if (!shouldBeFull && isCameraForeground) {
+                    isCameraForeground = false;
+                    AppData.uiHandler.post(() -> {
+                        if (clientView != null && isCameraMonitoring) {
+                            clientView.changeToMini(0); // 恢复到迷你悬浮窗
+                        }
+                    });
+                }
             } catch (InterruptedException e) {
                 break;
             } catch (Exception e) {
