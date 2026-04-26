@@ -65,9 +65,9 @@ public class Client {
   private volatile boolean isCameraMonitoring = false;
   private volatile boolean isCameraForeground = false;
 
-  private Thread evsMonitorThread;
-  private volatile boolean isEvsMonitoring = false;
-  private volatile boolean wasEvsShow = false;
+  private Thread reverseMonitorThread;
+  private volatile boolean isReverseMonitoring = false;
+  private volatile boolean wasReverse = false;
 
   private static final String[] CAMERA_PACKAGES = {
       "com.android.camera",
@@ -149,8 +149,6 @@ public class Client {
           if (device.nightModeSync) controlPacket.sendNightModeEvent(AppData.nightMode);
           clientView.changeToMini(0);   // 自动迷你悬浮窗
           startCameraMonitoring();
-          // 延迟 3 秒启动 EVS 监控，确保 Surface 已准备就绪
-           AppData.uiHandler.postDelayed(() -> startEvsMonitoring(), 3000);
       
           // 自动返回桌面（仅当是从USB自动连接触发时，避免相机恢复时也执行）
           // 简单起见，可以不加判断，因为相机恢复时也会执行但影响不大
@@ -396,7 +394,9 @@ public class Client {
     if (status == -1) return;
     status = -1;
     stopCameraMonitoring();
-    stopEvsMonitoring();
+    stopReverseMonitoring();
+
+    
     allClient.remove(this);
     if (error != null) {
       PublicTools.logToast(error);
@@ -555,58 +555,6 @@ public class Client {
     clientView.multiLink = multiLink;
   }
 
-  private void startEvsMonitoring() {
-    if (evsMonitorThread != null && evsMonitorThread.isAlive()) return;
-    isEvsMonitoring = true;
-    evsMonitorThread = new Thread(() -> {
-        while (isEvsMonitoring && !Thread.interrupted()) {
-            try {
-                Thread.sleep(300);
-                String evsApp = getSystemProperty("persist.sys.evs.evs_app");
-                boolean isShow = "show".equals(evsApp);
-                
-                if (isShow && !wasEvsShow) {
-                    // 延迟执行，避免在投屏刚启动时冲突
-                    Thread.sleep(500);
-                    AppData.uiHandler.post(() -> {
-                        if (clientView != null && isEvsMonitoring) {
-                            // 只有当前不是全屏模式时才切换
-                            if (clientView.viewMode != 3) {
-                                clientView.changeToFull();
-                            }
-                        }
-                    });
-                } else if (!isShow && wasEvsShow) {
-                    Thread.sleep(500);
-                    AppData.uiHandler.post(() -> {
-                        if (clientView != null && isEvsMonitoring) {
-                            // 只有当前是全屏模式时才切换回迷你窗
-                            if (clientView.viewMode == 3) {
-                                clientView.changeToMini(0);
-                            }
-                        }
-                    });
-                }
-                wasEvsShow = isShow;
-            } catch (InterruptedException e) {
-                break;
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    });
-    evsMonitorThread.start();
-}
-
-
-private void stopEvsMonitoring() {
-    isEvsMonitoring = false;
-    if (evsMonitorThread != null) {
-        evsMonitorThread.interrupt();
-        evsMonitorThread = null;
-    }
-    wasEvsShow = false;
-}
 
 private String getSystemProperty(String key) {
     try {
@@ -667,6 +615,54 @@ private void stopCameraMonitoring() {
     isCameraForeground = false;
 }
 
+private void startReverseMonitoring() {
+    if (reverseMonitorThread != null && reverseMonitorThread.isAlive()) return;
+    isReverseMonitoring = true;
+    reverseMonitorThread = new Thread(() -> {
+        while (isReverseMonitoring && !Thread.interrupted()) {
+            try {
+                Thread.sleep(300); // 轮询间隔
+                String gear = getSystemProperty("sys.gear.reverse");
+                boolean isReverse = "1".equals(gear);
+                
+                if (isReverse && !wasReverse) {
+                    // 进入倒车 -> 全屏
+                    AppData.uiHandler.post(() -> {
+                        if (clientView != null && isReverseMonitoring) {
+                            // 检查当前是否不是全屏，避免重复
+                            if (clientView.viewMode != 3) {
+                                clientView.changeToFull();
+                            }
+                        }
+                    });
+                } else if (!isReverse && wasReverse) {
+                    // 退出倒车 -> 恢复迷你悬浮窗
+                    AppData.uiHandler.post(() -> {
+                        if (clientView != null && isReverseMonitoring) {
+                            clientView.changeToMini(0);
+                        }
+                    });
+                }
+                wasReverse = isReverse;
+            } catch (InterruptedException e) {
+                break;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    });
+    reverseMonitorThread.start();
+}
+
+private void stopReverseMonitoring() {
+    isReverseMonitoring = false;
+    if (reverseMonitorThread != null) {
+        reverseMonitorThread.interrupt();
+        reverseMonitorThread = null;
+    }
+    wasReverse = false;
+}
+  
 public String getForegroundPackage() {
     try {
         String result = adb.runAdbCmd("dumpsys window");
