@@ -609,54 +609,6 @@ private void stopCameraMonitoring() {
     }
     isCameraForeground = false;
 }
-
-private void startReverseMonitoring() {
-    if (reverseMonitorThread != null && reverseMonitorThread.isAlive()) return;
-    isReverseMonitoring = true;
-    reverseMonitorThread = new Thread(() -> {
-        while (isReverseMonitoring && !Thread.interrupted()) {
-            try {
-                Thread.sleep(300); // 轮询间隔
-                String gear = getSystemProperty("sys.gear.reverse");
-                boolean isReverse = "1".equals(gear);
-                
-                if (isReverse && !wasReverse) {
-                    // 进入倒车 -> 全屏
-                    AppData.uiHandler.post(() -> {
-                        if (clientView != null && isReverseMonitoring) {
-                            // 检查当前是否不是全屏，避免重复
-                            if (clientView.viewMode != 3) {
-                                clientView.changeToFull();
-                            }
-                        }
-                    });
-                } else if (!isReverse && wasReverse) {
-                    // 退出倒车 -> 恢复迷你悬浮窗
-                    AppData.uiHandler.post(() -> {
-                        if (clientView != null && isReverseMonitoring) {
-                            clientView.changeToMini(0);
-                        }
-                    });
-                }
-                wasReverse = isReverse;
-            } catch (InterruptedException e) {
-                break;
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    });
-    reverseMonitorThread.start();
-}
-
-private void stopReverseMonitoring() {
-    isReverseMonitoring = false;
-    if (reverseMonitorThread != null) {
-        reverseMonitorThread.interrupt();
-        reverseMonitorThread = null;
-    }
-    wasReverse = false;
-}
   
 public String getForegroundPackage() {
     try {
