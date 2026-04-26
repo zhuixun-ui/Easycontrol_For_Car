@@ -563,16 +563,26 @@ public class Client {
                 Thread.sleep(300);
                 String evsApp = getSystemProperty("persist.sys.evs.evs_app");
                 boolean isShow = "show".equals(evsApp);
+                
                 if (isShow && !wasEvsShow) {
+                    // 延迟执行，避免在投屏刚启动时冲突
+                    Thread.sleep(500);
                     AppData.uiHandler.post(() -> {
                         if (clientView != null && isEvsMonitoring) {
-                            clientView.changeToFull();
+                            // 只有当前不是全屏模式时才切换
+                            if (clientView.viewMode != 3) {
+                                clientView.changeToFull();
+                            }
                         }
                     });
                 } else if (!isShow && wasEvsShow) {
+                    Thread.sleep(500);
                     AppData.uiHandler.post(() -> {
                         if (clientView != null && isEvsMonitoring) {
-                            clientView.changeToMini(0);
+                            // 只有当前是全屏模式时才切换回迷你窗
+                            if (clientView.viewMode == 3) {
+                                clientView.changeToMini(0);
+                            }
                         }
                     });
                 }
@@ -586,6 +596,7 @@ public class Client {
     });
     evsMonitorThread.start();
 }
+
 
 private void stopEvsMonitoring() {
     isEvsMonitoring = false;
