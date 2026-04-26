@@ -65,9 +65,7 @@ public class Client {
   private volatile boolean isCameraMonitoring = false;
   private volatile boolean isCameraForeground = false;
 
-  private Thread reverseMonitorThread;
-  private volatile boolean isReverseMonitoring = false;
-  private volatile boolean wasReverse = false;
+
 
   private static final String[] CAMERA_PACKAGES = {
       "com.android.camera",
@@ -149,8 +147,7 @@ public class Client {
           if (device.nightModeSync) controlPacket.sendNightModeEvent(AppData.nightMode);
           clientView.changeToMini(0);   // 自动迷你悬浮窗
           startCameraMonitoring();
-          // 延迟 2 秒启动倒车监控，确保 Surface 准备就绪
-          //AppData.uiHandler.postDelayed(() -> startReverseMonitoring(), 2000);
+
           // 简单起见，可以不加判断，因为相机恢复时也会执行但影响不大
           Intent homeIntent = new Intent(Intent.ACTION_MAIN);
           homeIntent.addCategory(Intent.CATEGORY_HOME);
@@ -394,8 +391,6 @@ public class Client {
     if (status == -1) return;
     status = -1;
     stopCameraMonitoring();
-    stopReverseMonitoring();
-
     
     allClient.remove(this);
     if (error != null) {
