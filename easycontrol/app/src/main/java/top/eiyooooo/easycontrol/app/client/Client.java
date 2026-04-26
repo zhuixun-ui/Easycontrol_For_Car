@@ -551,15 +551,6 @@ public class Client {
   }
 
 
-private String getSystemProperty(String key) {
-    try {
-        Class<?> clazz = Class.forName("android.os.SystemProperties");
-        java.lang.reflect.Method get = clazz.getMethod("get", String.class);
-        return (String) get.invoke(null, key);
-    } catch (Exception e) {
-        return null;
-    }
-}
   
 private void startCameraMonitoring() {
     if (!AppData.setting.getMiniRecoverOnTimeout()) return;
