@@ -21,16 +21,14 @@ import top.eiyooooo.easycontrol.app.databinding.ModuleMiniViewBinding;
 public class MiniView {
 
     private final ClientView clientView;
-    private Thread timeoutListenerThread;
-    private long lastTouchOutsideTime = 0;
-
-    // 迷你悬浮窗
     private final ModuleMiniViewBinding miniView = ModuleMiniViewBinding.inflate(LayoutInflater.from(AppData.main));
     private final WindowManager.LayoutParams miniViewParams = new WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE,
-            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
+                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH |
+                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
             PixelFormat.TRANSLUCENT
     );
 
@@ -40,7 +38,6 @@ public class MiniView {
         this.clientView = clientView;
         miniViewParams.gravity = Gravity.START | Gravity.TOP;
         miniViewParams.x = 0;
-        // Bar颜色
         int colorNum = num++ % 4;
         int barColor = R.color.bar1;
         if (colorNum == 1) barColor = R.color.bar2;
@@ -51,9 +48,7 @@ public class MiniView {
 
     public void show(int mode) {
         miniViewParams.y = clientView.device.mini_y;
-        // 设置监听控制
         setBarListener();
-        // 显示
         clientView.viewAnim(miniView.getRoot(), true, PublicTools.dp2px(-40f), 0, (isStart -> {
             if (isStart) {
                 miniView.getRoot().setVisibility(View.VISIBLE);
@@ -61,28 +56,12 @@ public class MiniView {
 
                 // 模拟一次用户触摸，防止被系统回收
                 miniView.getRoot().postDelayed(() -> {
-                    int[] location = new int[2];
-                    miniView.getRoot().getLocationOnScreen(location);
                     long downTime = SystemClock.uptimeMillis();
-                    // 模拟 ACTION_DOWN
-                    MotionEvent downEvent = MotionEvent.obtain(
-                            downTime, downTime,
-                            MotionEvent.ACTION_DOWN,
-                            location[0] + 50,
-                            location[1] + 50,
-                            0
-                    );
+                    MotionEvent downEvent = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, 50, 50, 0);
                     miniView.getRoot().dispatchTouchEvent(downEvent);
                     downEvent.recycle();
-
-                    // 模拟 ACTION_UP
-                    MotionEvent upEvent = MotionEvent.obtain(
-                            downTime, downTime + 50,
-                            MotionEvent.ACTION_UP,
-                            location[0] + 50,
-                            location[1] + 50,
-                            0
-                    );
+                    
+                    MotionEvent upEvent = MotionEvent.obtain(downTime, downTime + 50, MotionEvent.ACTION_UP, 50, 50, 0);
                     miniView.getRoot().dispatchTouchEvent(upEvent);
                     upEvent.recycle();
                 }, 200);
@@ -95,27 +74,35 @@ public class MiniView {
             miniView.getRoot().setVisibility(View.GONE);
             AppData.windowManager.removeView(miniView.getRoot());
             clientView.updateDevice();
-            if (timeoutListenerThread != null) timeoutListenerThread.interrupt();
         } catch (Exception ignored) {
         }
     }
 
-    // 设置监听控制
     @SuppressLint("ClickableViewAccessibility")
     private void setBarListener() {
         AtomicInteger yy = new AtomicInteger();
         AtomicInteger oldYy = new AtomicInteger();
         miniView.getRoot().setOnTouchListener((v, event) -> {
-            switch (event.getActionMasked()) {
-                case MotionEvent.ACTION_OUTSIDE:
-                    clientView.lastTouchIsInside = false;
-                    lastTouchOutsideTime = System.currentTimeMillis();
-                    break;
-                case MotionEvent.ACTION_DOWN: {
-                    clientView.lastTouchIsInside = true;
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_OUTSIDE) {
+                clientView.lastTouchIsInside = false;
+            } else {
+                clientView.lastTouchIsInside = true;
+                if (action == MotionEvent.ACTION_DOWN) {
                     yy.set((int) event.getRawY());
                     oldYy.set(miniViewParams.y);
-                    break;
+                } else if (action == MotionEvent.ACTION_MOVE) {
+                    miniViewParams.y = oldYy.get() + (int) event.getRawY() - yy.get();
+                    clientView.device.mini_y = miniViewParams.y;
+                    AppData.windowManager.updateViewLayout(miniView.getRoot(), miniViewParams);
+                } else if (action == MotionEvent.ACTION_UP) {
+                    int flipY = Math.abs(yy.get() - (int) event.getRawY());
+                    if (flipY < 16) {
+                        clientView.changeToSmall();
+                    }
                 }
-                case MotionEvent.ACTION_MOVE: {
-      
+            }
+            return true;
+        });
+    }
+}
