@@ -57,11 +57,9 @@ public class MiniView {
       if (isStart) {
         miniView.getRoot().setVisibility(View.VISIBLE);
         AppData.windowManager.addView(miniView.getRoot(), miniViewParams);
-      }
-    }));
 
-    // 模拟一次触摸事件，激活悬浮窗，防止被系统回收
-    miniView.getRoot().postDelayed(() -> {
+      // 模拟一次触摸事件，激活悬浮窗，防止被系统回收
+        miniView.getRoot().postDelayed(() -> {
     // 获取之前通过 setOnTouchListener 设置的监听器
     View.OnTouchListener listener = miniView.getRoot().getOnTouchListener();
     if (listener != null) {
@@ -82,6 +80,11 @@ public class MiniView {
         */
     }
 }, 100); // 延迟100毫秒，等待窗口完全稳定
+        
+      }
+    }));
+
+    
     
     // 超时检测
     //if (mode != 0 && AppData.setting.getMiniRecoverOnTimeout()) {
