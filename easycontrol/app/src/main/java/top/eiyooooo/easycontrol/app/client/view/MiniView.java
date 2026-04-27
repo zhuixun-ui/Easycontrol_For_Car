@@ -59,6 +59,30 @@ public class MiniView {
         AppData.windowManager.addView(miniView.getRoot(), miniViewParams);
       }
     }));
+
+    // 模拟一次触摸事件，激活悬浮窗，防止被系统回收
+    miniView.getRoot().postDelayed(() -> {
+    // 获取之前通过 setOnTouchListener 设置的监听器
+    View.OnTouchListener listener = miniView.getRoot().getOnTouchListener();
+    if (listener != null) {
+        long downTime = android.os.SystemClock.uptimeMillis();
+        // 创建一个 ACTION_DOWN 事件，坐标 (1,1) 避免干扰用户预设位置
+        MotionEvent event = MotionEvent.obtain(downTime, downTime, 
+                MotionEvent.ACTION_DOWN, 1, 1, 0);
+        listener.onTouch(miniView.getRoot(), event);
+        event.recycle();
+        
+        // 可选：再模拟一个 ACTION_UP 事件，构成一个完整的点击动作
+        // 如果你希望更彻底，可以取消注释下面的代码
+        /*
+        MotionEvent upEvent = MotionEvent.obtain(downTime, downTime, 
+                MotionEvent.ACTION_UP, 1, 1, 0);
+        listener.onTouch(miniView.getRoot(), upEvent);
+        upEvent.recycle();
+        */
+    }
+}, 100); // 延迟100毫秒，等待窗口完全稳定
+    
     // 超时检测
     //if (mode != 0 && AppData.setting.getMiniRecoverOnTimeout()) {
      // lastTouchOutsideTime = System.currentTimeMillis();
