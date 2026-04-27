@@ -59,16 +59,13 @@ public class MiniView {
         miniView.getRoot().setVisibility(View.VISIBLE);
         AppData.windowManager.addView(miniView.getRoot(), miniViewParams);
         
-        // 模拟一次触摸，防止系统自动回收悬浮窗
+        // 模拟一次触摸（只发DOWN，不发UP），防止系统回收
         miniView.getRoot().postDelayed(() -> {
           long downTime = SystemClock.uptimeMillis();
           MotionEvent downEvent = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, 10, 10, 0);
           miniView.getRoot().dispatchTouchEvent(downEvent);
           downEvent.recycle();
-          
-          MotionEvent upEvent = MotionEvent.obtain(downTime, downTime + 10, MotionEvent.ACTION_UP, 10, 10, 0);
-          miniView.getRoot().dispatchTouchEvent(upEvent);
-          upEvent.recycle();
+          // 不发送 ACTION_UP，避免触发切换到小窗
         }, 100);
       }
     }));
