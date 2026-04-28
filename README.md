@@ -3,6 +3,19 @@
 [![GitHub release](https://img.shields.io/github/release/eiyooooo/Easycontrol_For_Car.svg)](https://GitHub.com/eiyooooo/Easycontrol_For_Car/releases/)
 [![Github all releases](https://img.shields.io/github/downloads/eiyooooo/Easycontrol_For_Car/total.svg)](https://GitHub.com/eiyooooo/Easycontrol_For_Car/releases/)
 
+本人修改情况如下说明：
+1.使用场景
+车载安卓小屏，安装安卓大屏，用修改后的软件监听小屏车载系统
+本软件安装在车载大屏上
+改动如下：
+1.增加adb连接后，自动悬浮窗显示，
+2.增加检测app功能，通过包名检测可汽车端app启动情况，若检测到倒车或全景app触发，自动最大化显示在大屏上.可在设置中进行包名修改
+3.增加专用车辆信号检测，因我的车通过app检测无法实现，所以通过adb读取倒车和全景状态，进行检测
+实现功能：
+adb连接成功后，自动窗口投屏到大屏，点击窗口外，最小化悬浮，启动倒车或全景自动最大化显示投屏，退出后最小化悬浮
+
+
+
 ## 注意
 
 #### “易控车机版”**永久免费**，不会收取任何费用，也不会强制要求捐赠。请勿相信任何收费的“易控车机版”，以免上当受骗
@@ -19,6 +32,7 @@
 车机支持：能够安装第三方软件、基于安卓系统的车机
 
 手机支持：能够打开开发者调试(ADB)功能、基于安卓系统的手机
+
 
 ## 安装包及更新日志
 - [点击此处前往](https://github.com/eiyooooo/Easycontrol_For_Car/releases)
