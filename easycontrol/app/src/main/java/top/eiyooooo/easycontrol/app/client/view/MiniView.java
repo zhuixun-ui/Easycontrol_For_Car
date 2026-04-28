@@ -23,6 +23,7 @@ public class MiniView {
   private final ClientView clientView;
   private Thread timeoutListenerThread;
   private long lastTouchOutsideTime = 0;
+  private boolean hasSimulated = false; // 新增：标志是否已模拟过点击
 
   // 迷你悬浮窗
   private final ModuleMiniViewBinding miniView = ModuleMiniViewBinding.inflate(LayoutInflater.from(AppData.main));
@@ -59,18 +60,20 @@ public class MiniView {
         miniView.getRoot().setVisibility(View.VISIBLE);
         AppData.windowManager.addView(miniView.getRoot(), miniViewParams);
 
-        // 模拟一次触摸，防止被系统回收（只模拟一次）
-        miniView.getRoot().postDelayed(() -> {
-          // 获取悬浮窗位置，模拟一个 ACTION_DOWN 和 ACTION_UP 在 (10,10) 位置（不影响现有控件）
-          long downTime = SystemClock.uptimeMillis();
-          MotionEvent downEvent = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, 10, 10, 0);
-          miniView.getRoot().dispatchTouchEvent(downEvent);
-          downEvent.recycle();
+        // 只在首次显示时模拟一次用户触摸，防止被系统回收
+        if (!hasSimulated) {
+          miniView.getRoot().postDelayed(() -> {
+            long downTime = SystemClock.uptimeMillis();
+            MotionEvent downEvent = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, 10, 10, 0);
+            miniView.getRoot().dispatchTouchEvent(downEvent);
+            downEvent.recycle();
 
-          MotionEvent upEvent = MotionEvent.obtain(downTime, downTime + 50, MotionEvent.ACTION_UP, 10, 10, 0);
-          miniView.getRoot().dispatchTouchEvent(upEvent);
-          upEvent.recycle();
-        }, 200);
+            MotionEvent upEvent = MotionEvent.obtain(downTime, downTime + 50, MotionEvent.ACTION_UP, 10, 10, 0);
+            miniView.getRoot().dispatchTouchEvent(upEvent);
+            upEvent.recycle();
+          }, 200);
+          hasSimulated = true;
+        }
       }
     }));
 
