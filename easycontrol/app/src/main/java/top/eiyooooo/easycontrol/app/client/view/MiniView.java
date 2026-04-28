@@ -23,6 +23,7 @@ public class MiniView {
   private final ClientView clientView;
   private Thread timeoutListenerThread;
   private long lastTouchOutsideTime = 0;
+  private boolean hasUserInteracted = false;  // 新增：用户是否主动触摸过
 
   // 迷你悬浮窗
   private final ModuleMiniViewBinding miniView = ModuleMiniViewBinding.inflate(LayoutInflater.from(AppData.main));
@@ -59,23 +60,24 @@ public class MiniView {
         miniView.getRoot().setVisibility(View.VISIBLE);
         AppData.windowManager.addView(miniView.getRoot(), miniViewParams);
         
-        // 模拟一次触摸（只发DOWN，不发UP），防止系统回收
-        miniView.getRoot().postDelayed(() -> {
-          long downTime = SystemClock.uptimeMillis();
-          MotionEvent downEvent = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, 10, 10, 0);
-          miniView.getRoot().dispatchTouchEvent(downEvent);
-          downEvent.recycle();
-          // 不发送 ACTION_UP，避免触发切换到小窗
-        }, 100);
+        // 仅在用户从未主动触摸过时模拟一次触摸，防止悬浮窗被系统回收
+        if (!hasUserInteracted) {
+          miniView.getRoot().postDelayed(() -> {
+            if (!hasUserInteracted) { // 双重检查
+              long downTime = SystemClock.uptimeMillis();
+              MotionEvent downEvent = MotionEvent.obtain(downTime, downTime, MotionEvent.ACTION_DOWN, 10, 10, 0);
+              miniView.getRoot().dispatchTouchEvent(downEvent);
+              downEvent.recycle();
+              // 不发送 ACTION_UP，避免触发切换到小窗
+            }
+          }, 200);
+        }
       }
     }));
 
-    // 超时检测
+    // 超时检测已注释
     //if (mode != 0 && AppData.setting.getMiniRecoverOnTimeout()) {
-     // lastTouchOutsideTime = System.currentTimeMillis();
-     // if (timeoutListenerThread != null) timeoutListenerThread.interrupt();
-     // timeoutListenerThread = new Thread(() -> timeoutListener(mode));
-     // timeoutListenerThread.start();
+    //  ...
     //}
   }
 
@@ -95,6 +97,8 @@ public class MiniView {
     AtomicInteger yy = new AtomicInteger();
     AtomicInteger oldYy = new AtomicInteger();
     miniView.getRoot().setOnTouchListener((v, event) -> {
+      // 用户主动触摸，标记为已交互
+      hasUserInteracted = true;
       switch (event.getActionMasked()) {
         case MotionEvent.ACTION_OUTSIDE:
           clientView.lastTouchIsInside = false;
@@ -123,19 +127,5 @@ public class MiniView {
     });
   }
 
-  // 超时监听
-//  private void timeoutListener(int mode) {
-    //try {
-      //long now;
-//while (!Thread.interrupted()) {
-        //Thread.sleep(1);
-        //now = System.currentTimeMillis();
-        //if (now - lastTouchOutsideTime > 5000) {
-          //if (mode == 1) AppData.uiHandler.post(clientView::changeToSmall);
-         // else if (mode == 2) AppData.uiHandler.post(clientView::changeToFull);
-         // return;
-       // }
-    //  }
-  //  } catch (Exception ignored) {}
-//  }
+  // 超时监听（已注释）
 }
