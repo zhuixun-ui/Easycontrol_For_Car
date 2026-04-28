@@ -46,8 +46,8 @@
   <string name="set_display_default_show_nav_bar_detail">设置小窗和全屏模式默认是否显示导航栏</string>
   <string name="set_display_default_mini_on_outside">触摸外界时挂起</string>
   <string name="set_display_default_mini_on_outside_detail">(小窗模式)触摸小窗以外位置时自动最小化</string>
-  <string name="set_display_mini_recover_on_timeout">检测到app后自动恢复（必开）</string>
-  <string name="set_display_mini_recover_on_timeout_detail">在触发自动最小化后检测到app自动恢复全屏模式</string>
+  <string name="set_display_mini_recover_on_timeout">检测到倒车或全景时后自动全屏（必开）</string>
+  <string name="set_display_mini_recover_on_timeout_detail">在触发自动最小化后检测到倒车全景或app自动恢复全屏模式</string>
   <string name="set_display_full_to_mini_on_exit">全屏意外退出时挂起</string>
   <string name="set_display_full_to_mini_on_exit_detail">在全屏模式下意外退出时自动最小化(关闭时为自动小窗)</string>
   <string name="set_display_full_fill">全屏模式拉伸填充画面</string>
@@ -166,7 +166,7 @@
   <string name="set_device_button_delete">删除</string>
 
   <!-- 加载中模块 -->
-  <string name="loading_text">加加加加载中</string>
+  <string name="loading_text">加载中，请稍后...</string>
 
   <!-- 错误提示 -->
   <string name="error_no_browser">没有默认浏览器</string>
