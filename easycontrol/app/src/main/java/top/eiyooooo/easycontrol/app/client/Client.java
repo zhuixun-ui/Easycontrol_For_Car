@@ -61,21 +61,9 @@ public class Client {
   private long lastKeepAliveTime;
   public int multiLink = 0; // 0为单连接，1为多连接主，2为多连接从
 
-  private Thread cameraMonitorThread;
-  private volatile boolean isCameraMonitoring = false;
-  private volatile boolean isCameraForeground = false;
-
-
-
-  private static final String[] CAMERA_PACKAGES = {
-      "com.android.camera",
-      "com.sec.android.app.camera",
-      "com.huawei.camera",
-      "com.xiaomi.camera",
-      "com.oppo.camera",
-      "com.vivo.camera",
-      "com.oneplus.camera"
-  };
+  private Thread carMonitorThread;
+  private volatile boolean isCarMonitoring = false;
+  private volatile boolean isCarFull = false;
 
   private static final String serverName = "/data/local/tmp/easycontrol_for_car_server_" + BuildConfig.VERSION_CODE + ".jar";
   private static final boolean supportH265 = PublicTools.isDecoderSupport("hevc");
@@ -136,24 +124,17 @@ public class Client {
         startServer(device);
         connectServer();
         
-        //AppData.uiHandler.post(() -> {
-           // if (device.nightModeSync) controlPacket.sendNightModeEvent(AppData.nightMode);
-            // 连接成功后自动显示迷你悬浮窗
-           // clientView.changeToMini(0);
-           // startCameraMonitoring();
-       // });
-
         AppData.uiHandler.post(() -> {
           if (device.nightModeSync) controlPacket.sendNightModeEvent(AppData.nightMode);
           clientView.changeToMini(0);   // 自动迷你悬浮窗
-          startCameraMonitoring();
+          startCarMonitoring();
 
-          // 简单起见，可以不加判断，因为相机恢复时也会执行但影响不大
+          // 模拟 Home 键，回到系统桌面
           Intent homeIntent = new Intent(Intent.ACTION_MAIN);
           homeIntent.addCategory(Intent.CATEGORY_HOME);
           homeIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
           AppData.main.startActivity(homeIntent);
-      });
+        });
         
       } catch (Exception e) {
         L.log(device.uuid, e);
@@ -390,7 +371,7 @@ public class Client {
   public void release(String error) {
     if (status == -1) return;
     status = -1;
-    stopCameraMonitoring();
+    stopCarMonitoring();
     
     allClient.remove(this);
     if (error != null) {
@@ -550,135 +531,70 @@ public class Client {
     clientView.multiLink = multiLink;
   }
 
-private String getSystemProperty(String property) {
+  private String getSystemProperty(String property) {
     try {
-        String result = adb.runAdbCmd("getprop " + property);
-        if (result == null) return null;
-        return result.trim();
+      String result = adb.runAdbCmd("getprop " + property);
+      if (result == null) return null;
+      return result.trim();
     } catch (Exception e) {
-        e.printStackTrace();
-        return null;
+      e.printStackTrace();
+      return null;
     }
-}
-
-  private void startCameraMonitoring() {
-    if (!AppData.setting.getMiniRecoverOnTimeout()) return;
-    if (cameraMonitorThread != null && cameraMonitorThread.isAlive()) return;
-    isCameraMonitoring = true;
-    cameraMonitorThread = new Thread(() -> {
-        while (isCameraMonitoring && !Thread.interrupted()) {
-            try {
-                Thread.sleep(200);
-                
-                // 1. 检测相机包名
-                String pkg = getForegroundPackage();
-                boolean isCamera = isCameraPackage(pkg);
-                
-                // 2. 检测倒车或全景
-                boolean isReverseOrPanorama = false;
-                String evsState = getSystemProperty("persist.sys.evs.evs_app");
-                String gearReverse = getSystemProperty("sys.gear.reverse");
-                
-                if (("show".equalsIgnoreCase(evsState)) || ("1".equals(gearReverse))) {
-                    isReverseOrPanorama = true;
-                }
-                
-                boolean shouldBeFull = isCamera || isReverseOrPanorama;
-                
-                if (shouldBeFull && !isCameraForeground) {
-                    isCameraForeground = true;
-                    AppData.uiHandler.post(() -> {
-                        if (clientView != null && isCameraMonitoring) {
-                            clientView.changeToFull();
-                        }
-                    });
-                } else if (!shouldBeFull && isCameraForeground) {
-                    isCameraForeground = false;
-                    AppData.uiHandler.post(() -> {
-                        if (clientView != null && isCameraMonitoring) {
-                            clientView.changeToMini(0);
-                            
-                            // 模拟 Home 键，回到系统桌面
-                            Intent homeIntent = new Intent(Intent.ACTION_MAIN);
-                            homeIntent.addCategory(Intent.CATEGORY_HOME);
-                            homeIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                            AppData.main.startActivity(homeIntent);
-                        }
-                    });
-                }
-            } catch (InterruptedException e) {
-                break;
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    });
-    cameraMonitorThread.start();
   }
 
-private void stopCameraMonitoring() {
-    isCameraMonitoring = false;
-    if (cameraMonitorThread != null) {
-        cameraMonitorThread.interrupt();
-        cameraMonitorThread = null;
-    }
-    isCameraForeground = false;
-}
-  
-public String getForegroundPackage() {
-    try {
-        String result = adb.runAdbCmd("dumpsys window");
-        if (result == null) return null;
-        String[] lines = result.split("\n");
-        for (String line : lines) {
-            if (line.contains("mCurrentFocus")) {
-                int idx = line.indexOf("u0");
-                if (idx == -1) continue;
-                int start = idx + 2;
-                while (start < line.length() && (line.charAt(start) == ' ' || line.charAt(start) == '{')) start++;
-                int end = line.indexOf("/", start);
-                if (end == -1) continue;
-                return line.substring(start, end);
-            }
+  // 只检测倒车和全景，轮询间隔100ms
+  private void startCarMonitoring() {
+    if (!AppData.setting.getMiniRecoverOnTimeout()) return;
+    if (carMonitorThread != null && carMonitorThread.isAlive()) return;
+    isCarMonitoring = true;
+    carMonitorThread = new Thread(() -> {
+      while (isCarMonitoring && !Thread.interrupted()) {
+        try {
+          Thread.sleep(100);  // 100ms 快速响应
+          
+          String evsState = getSystemProperty("persist.sys.evs.evs_app");
+          String gearReverse = getSystemProperty("sys.gear.reverse");
+          boolean shouldFull = ("show".equalsIgnoreCase(evsState)) || ("1".equals(gearReverse));
+          
+          if (shouldFull && !isCarFull) {
+            isCarFull = true;
+            AppData.uiHandler.post(() -> {
+              if (clientView != null && isCarMonitoring) {
+                clientView.changeToFull();
+              }
+            });
+          } else if (!shouldFull && isCarFull) {
+            isCarFull = false;
+            AppData.uiHandler.post(() -> {
+              if (clientView != null && isCarMonitoring) {
+                clientView.changeToMini(0);
+                // 模拟 Home 键，回到系统桌面
+                Intent homeIntent = new Intent(Intent.ACTION_MAIN);
+                homeIntent.addCategory(Intent.CATEGORY_HOME);
+                homeIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                AppData.main.startActivity(homeIntent);
+              }
+            });
+          }
+        } catch (InterruptedException e) {
+          break;
+        } catch (Exception e) {
+          e.printStackTrace();
         }
-        for (String line : lines) {
-            if (line.contains("mFocusedApp")) {
-                java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("u0\\s+([\\w.]+)/");
-                java.util.regex.Matcher matcher = pattern.matcher(line);
-                if (matcher.find()) return matcher.group(1);
-            }
-        }
-    } catch (Exception e) {}
-    return null;
-}
+      }
+    });
+    carMonitorThread.start();
+  }
 
-//private boolean isCameraPackage(String pkg) {
-    //if (pkg == null) return false;
-    //for (String cp : CAMERA_PACKAGES) {
-       // if (cp.equals(pkg)) return true;
-   // }
-    //return false;
-//}
+  private void stopCarMonitoring() {
+    isCarMonitoring = false;
+    if (carMonitorThread != null) {
+      carMonitorThread.interrupt();
+      carMonitorThread = null;
+    }
+    isCarFull = false;
+  }
 
-  private boolean isCameraPackage(String pkg) {
-    if (pkg == null) return false;
-    
-    // 获取用户自定义的包名（可能包含多个，用逗号分隔）
-    String custom = AppData.setting.getCustomCameraPackage();
-    if (!custom.isEmpty()) {
-        String[] customPkgs = custom.split(",");
-        for (String cp : customPkgs) {
-            if (cp.trim().equals(pkg)) return true;
-        }
-    }
-    
-    // 如果用户没有自定义或未匹配，再检查内置列表
-    for (String cp : CAMERA_PACKAGES) {
-        if (cp.equals(pkg)) return true;
-    }
-    return false;
-}
-  
   public void playAudio(boolean play) {
     if (audioDecode != null) audioDecode.playAudio(play);
   }
