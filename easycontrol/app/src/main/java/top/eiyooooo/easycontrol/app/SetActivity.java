@@ -6,6 +6,11 @@ import android.os.Bundle;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
+import android.widget.EditText;
+import android.widget.Button;
+import android.widget.TextView;
+import top.eiyooooo.easycontrol.app.client.Client;
+
 import top.eiyooooo.easycontrol.app.entity.AppData;
 import top.eiyooooo.easycontrol.app.helper.PublicTools;
 import top.eiyooooo.easycontrol.app.databinding.ActivitySetBinding;
@@ -29,6 +34,66 @@ public class SetActivity extends Activity {
     setButtonListener();
   }
 
+    @Override
+  protected void onPause() {
+      super.onPause();
+      EditText etCameraPackage = findViewById(R.id.et_camera_package);
+      if (etCameraPackage != null) {
+          String cameraPkg = etCameraPackage.getText().toString().trim();
+          // 只在非空时校验格式
+          if (!cameraPkg.isEmpty() && !cameraPkg.matches("[a-zA-Z0-9._]+(,[a-zA-Z0-9._]+)*")) {
+              // 格式错误时可提示，但不保存
+              return;
+          }
+          AppData.setting.setCustomCameraPackage(cameraPkg);
+      }
+  }
+  
+  private void testCameraPackage(EditText et, TextView hint) {
+      String input = et.getText().toString().trim();
+      if (input.isEmpty()) {
+          hint.setText("❌ 包名不能为空");
+          hint.setTextColor(getColor(R.color.red));
+          return;
+      }
+      if (!input.matches("[a-zA-Z0-9._]+(,[a-zA-Z0-9._]+)*")) {
+          hint.setText("❌ 格式错误：只能包含字母、数字、点、下划线，多个用逗号分隔");
+          hint.setTextColor(getColor(R.color.red));
+          return;
+      }
+      if (Client.allClient.isEmpty()) {
+          hint.setText("⚠️ 没有已连接的设备，请先连接后再测试");
+          hint.setTextColor(getColor(R.color.orange));
+          return;
+      }
+      Client client = Client.allClient.get(0);
+      new Thread(() -> {
+          String currentPkg = client.getForegroundPackage();
+          AppData.uiHandler.post(() -> {
+              if (currentPkg == null) {
+                  hint.setText("❌ 无法获取当前前台应用，请确保设备已授权");
+                  hint.setTextColor(getColor(R.color.red));
+                  return;
+              }
+              String[] targetPkgs = input.split(",");
+              boolean matched = false;
+              for (String pkg : targetPkgs) {
+                  if (pkg.trim().equals(currentPkg)) {
+                      matched = true;
+                      break;
+                  }
+              }
+              if (matched) {
+                  hint.setText("✅ 正确！当前前台包名：" + currentPkg);
+                  hint.setTextColor(getColor(R.color.green));
+              } else {
+                  hint.setText("❌ 不匹配！当前前台包名：" + currentPkg);
+                  hint.setTextColor(getColor(R.color.red));
+              }
+          });
+      }).start();
+  }
+  
   // 设置默认值
   private void drawUi() {
     // 默认参数
@@ -124,6 +189,18 @@ public class SetActivity extends Activity {
       Toast.makeText(this, getString(R.string.set_other_locale_code), Toast.LENGTH_SHORT).show();
     }).getRoot());
 
+    // 相机检测设置
+    EditText etCameraPackage = findViewById(R.id.et_camera_package);
+    Button btnTestPackage = findViewById(R.id.btn_test_package);
+    TextView tvPackageHint = findViewById(R.id.tv_package_hint);
+    
+    // 加载已保存的自定义包名
+    String savedCameraPackage = AppData.setting.getCustomCameraPackage();
+    etCameraPackage.setText(savedCameraPackage);
+    
+    // 测试按钮点击事件
+    btnTestPackage.setOnClickListener(v -> testCameraPackage(etCameraPackage, tvPackageHint));
+    
     // 关于
     setActivity.setAbout.addView(PublicTools.createTextCard(this, getString(R.string.set_about_website), () -> PublicTools.startUrl(this, "https://github.com/eiyooooo/Easycontrol_For_Car")).getRoot());
     setActivity.setAbout.addView(PublicTools.createTextCard(this, getString(R.string.set_about_how_to_use), () -> PublicTools.openWebViewActivity(this, "file:///android_asset/usage.html")).getRoot());
