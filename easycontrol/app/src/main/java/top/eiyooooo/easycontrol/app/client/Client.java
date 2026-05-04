@@ -559,7 +559,7 @@ private String getSystemProperty(String property) {
                 
                 
                 // 2. 检测倒车或全景
-                boolean isReverseOrPanorama = false;
+                
                 String evsState = getSystemProperty("persist.sys.evs.evs_app");
                 String gearReverse = getSystemProperty("sys.gear.reverse");
                 
@@ -567,7 +567,7 @@ private String getSystemProperty(String property) {
                     isReverseOrPanorama = true;
                 }
                 
-                boolean shouldBeFull = isCamera || isReverseOrPanorama;
+                boolean shouldBeFull = ("show".equalsIgnoreCase(evsState)) || ("1".equals(gearReverse));
                 
                 if (shouldBeFull && !isCameraForeground) {
                     isCameraForeground = true;
