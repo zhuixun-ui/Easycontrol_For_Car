@@ -568,7 +568,7 @@ private String getSystemProperty(String property) {
     cameraMonitorThread = new Thread(() -> {
         while (isCameraMonitoring && !Thread.interrupted()) {
             try {
-                Thread.sleep(1000);
+                Thread.sleep(200);
                 
                 // 1. 检测相机包名
                 String pkg = getForegroundPackage();
