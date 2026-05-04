@@ -67,15 +67,7 @@ public class Client {
 
 
 
-  private static final String[] CAMERA_PACKAGES = {
-      "com.android.camera",
-      "com.sec.android.app.camera",
-      "com.huawei.camera",
-      "com.xiaomi.camera",
-      "com.oppo.camera",
-      "com.vivo.camera",
-      "com.oneplus.camera"
-  };
+
 
   private static final String serverName = "/data/local/tmp/easycontrol_for_car_server_" + BuildConfig.VERSION_CODE + ".jar";
   private static final boolean supportH265 = PublicTools.isDecoderSupport("hevc");
@@ -136,12 +128,7 @@ public class Client {
         startServer(device);
         connectServer();
         
-        //AppData.uiHandler.post(() -> {
-           // if (device.nightModeSync) controlPacket.sendNightModeEvent(AppData.nightMode);
-            // 连接成功后自动显示迷你悬浮窗
-           // clientView.changeToMini(0);
-           // startCameraMonitoring();
-       // });
+
 
         AppData.uiHandler.post(() -> {
           if (device.nightModeSync) controlPacket.sendNightModeEvent(AppData.nightMode);
@@ -570,9 +557,6 @@ private String getSystemProperty(String property) {
             try {
                 Thread.sleep(200);
                 
-                // 1. 检测相机包名
-                String pkg = getForegroundPackage();
-                boolean isCamera = isCameraPackage(pkg);
                 
                 // 2. 检测倒车或全景
                 boolean isReverseOrPanorama = false;
@@ -652,32 +636,7 @@ public String getForegroundPackage() {
     return null;
 }
 
-//private boolean isCameraPackage(String pkg) {
-    //if (pkg == null) return false;
-    //for (String cp : CAMERA_PACKAGES) {
-       // if (cp.equals(pkg)) return true;
-   // }
-    //return false;
-//}
 
-  private boolean isCameraPackage(String pkg) {
-    if (pkg == null) return false;
-    
-    // 获取用户自定义的包名（可能包含多个，用逗号分隔）
-    String custom = AppData.setting.getCustomCameraPackage();
-    if (!custom.isEmpty()) {
-        String[] customPkgs = custom.split(",");
-        for (String cp : customPkgs) {
-            if (cp.trim().equals(pkg)) return true;
-        }
-    }
-    
-    // 如果用户没有自定义或未匹配，再检查内置列表
-    for (String cp : CAMERA_PACKAGES) {
-        if (cp.equals(pkg)) return true;
-    }
-    return false;
-}
   
   public void playAudio(boolean play) {
     if (audioDecode != null) audioDecode.playAudio(play);
