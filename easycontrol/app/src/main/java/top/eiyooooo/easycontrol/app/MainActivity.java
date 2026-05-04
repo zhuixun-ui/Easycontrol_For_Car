@@ -9,7 +9,6 @@ import android.app.Dialog;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.provider.Settings;
 import android.view.LayoutInflater;
 
@@ -30,10 +29,6 @@ public class MainActivity extends Activity {
   // 设备列表
   private DeviceListAdapter deviceListAdapter;
   private ConnectHelper connectHelper;
-
-  // 定时检测 USB
-  private Handler usbCheckHandler;
-  private Runnable usbCheckRunnable;
 
   // 创建界面
   private ActivityMainBinding mainActivity;
@@ -75,14 +70,10 @@ public class MainActivity extends Activity {
         }
       }
     }
-
-    // 启动 USB 定时检测（如果没有已连接设备）
-    startUsbPeriodicCheck();
   }
 
   @Override
   protected void onDestroy() {
-    stopUsbPeriodicCheck();
     AppData.uiHandler.removeCallbacks(connectHelper.showStartDefaultUSB);
     AppData.myBroadcastReceiver.setDeviceListAdapter(null);
     AppData.myBroadcastReceiver.setConnectHelper(null);
@@ -92,8 +83,6 @@ public class MainActivity extends Activity {
 
   @Override
   protected void onPause() {
-    // 暂停定时检测（可选，也可保留）
-    stopUsbPeriodicCheck();
     AppData.uiHandler.removeCallbacks(connectHelper.showStartDefaultUSB);
     ConnectHelper.status = false;
     super.onPause();
@@ -112,8 +101,6 @@ public class MainActivity extends Activity {
           }
         }
       }
-      // 重新启动定时检测
-      startUsbPeriodicCheck();
     }
     super.onResume();
   }
@@ -170,33 +157,5 @@ public class MainActivity extends Activity {
     mainActivity.buttonPair.setOnClickListener(v -> startActivity(new Intent(this, PairActivity.class)));
     mainActivity.buttonAdd.setOnClickListener(v -> PublicTools.createAddDeviceView(this, Device.getDefaultDevice(UUID.randomUUID().toString(), Device.TYPE_NORMAL), deviceListAdapter).show());
     mainActivity.buttonSet.setOnClickListener(v -> startActivity(new Intent(this, SetActivity.class)));
-  }
-
-  // 启动定时 USB 检测（仅当没有已连接设备时）
-  private void startUsbPeriodicCheck() {
-    if (usbCheckHandler == null) usbCheckHandler = new Handler();
-    if (usbCheckRunnable != null) stopUsbPeriodicCheck();
-    usbCheckRunnable = new Runnable() {
-      @Override
-      public void run() {
-        // 如果没有已连接的 Client，且 USB 功能开启，则检测 USB 设备
-        if (Client.allClient.isEmpty() && AppData.setting.getEnableUSB()) {
-          AppData.myBroadcastReceiver.checkConnectedUsb(MainActivity.this);
-        }
-        // 继续循环（间隔 3 秒）
-        if (usbCheckHandler != null) {
-          usbCheckHandler.postDelayed(this, 3000);
-        }
-      }
-    };
-    usbCheckRunnable.run();
-  }
-
-  // 停止定时检测
-  private void stopUsbPeriodicCheck() {
-    if (usbCheckHandler != null && usbCheckRunnable != null) {
-      usbCheckHandler.removeCallbacks(usbCheckRunnable);
-      usbCheckRunnable = null;
-    }
   }
 }
