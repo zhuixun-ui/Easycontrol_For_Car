@@ -30,6 +30,7 @@ import top.eiyooooo.easycontrol.app.R;
 import top.eiyooooo.easycontrol.app.adb.Adb;
 import top.eiyooooo.easycontrol.app.buffer.BufferStream;
 import top.eiyooooo.easycontrol.app.client.view.ClientView;
+import top.eiyooooo.easycontrol.app.MainActivity;
 
 public class Client {
   // 状态，0为初始，1为连接，-1为关闭
@@ -147,6 +148,8 @@ public class Client {
           if (device.nightModeSync) controlPacket.sendNightModeEvent(AppData.nightMode);
           clientView.changeToMini(0);   // 自动迷你悬浮窗
           startCameraMonitoring();
+          
+          MainActivity.onDeviceConnected();
 
           // 简单起见，可以不加判断，因为相机恢复时也会执行但影响不大
           Intent homeIntent = new Intent(Intent.ACTION_MAIN);
