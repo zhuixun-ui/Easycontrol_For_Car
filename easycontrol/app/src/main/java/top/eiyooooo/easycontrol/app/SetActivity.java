@@ -215,4 +215,3 @@ public class SetActivity extends Activity {
     setActivity.backButton.setOnClickListener(v -> finish());
   }
 }
-在这里去掉相关检测
