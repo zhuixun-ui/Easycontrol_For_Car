@@ -25,6 +25,9 @@ import top.eiyooooo.easycontrol.app.helper.DeviceListAdapter;
 import top.eiyooooo.easycontrol.app.helper.PublicTools;
 import top.eiyooooo.easycontrol.app.helper.ConnectHelper;
 
+import android.widget.Toast;
+import android.os.Handler;
+
 
 
 public class MainActivity extends Activity {
@@ -32,7 +35,9 @@ public class MainActivity extends Activity {
   private DeviceListAdapter deviceListAdapter;
   private ConnectHelper connectHelper;
 
-
+  private static MainActivity instance;
+  private android.os.Handler autoUsbHandler;
+  private Runnable autoUsbRunnable;
 
   // 创建界面
   private ActivityMainBinding mainActivity;
@@ -42,6 +47,9 @@ public class MainActivity extends Activity {
   public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     AppData.init(this);
+    
+    instance = this;
+    
     PublicTools.setStatusAndNavBar(this);
     PublicTools.setLocale(this);
     mainActivity = ActivityMainBinding.inflate(this.getLayoutInflater());
@@ -77,41 +85,19 @@ public class MainActivity extends Activity {
         }
       }
     }
-        new Thread(() -> {
-        while (Client.allClient.isEmpty()) {
-            try {
-                Thread.sleep(3000);
-                runOnUiThread(() -> android.widget.Toast.makeText(this, "模拟USB拔插...", android.widget.Toast.LENGTH_SHORT).show());
-                
-                // 第一步：将设备设置为仅充电模式
-                Runtime.getRuntime().exec(new String[]{"su", "-c", "setprop sys.usb.config none"});
-                Thread.sleep(500);
-                
-                // 第二步：关键修改！先将USB配置设为MTP+ADB模式
-                Runtime.getRuntime().exec(new String[]{"su", "-c", "setprop sys.usb.config mtp,adb"});
-                Thread.sleep(1000); // 为ADB连接稳定预留时间
-    
-                // 第三步：强制重新启动ADB服务
-                Runtime.getRuntime().exec(new String[]{"su", "-c", "stop adbd"});
-                Thread.sleep(500);
-                Runtime.getRuntime().exec(new String[]{"su", "-c", "start adbd"});
-    
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        runOnUiThread(() -> android.widget.Toast.makeText(this, "设备已连接，停止模拟", android.widget.Toast.LENGTH_SHORT).show());
-    }).start();
+    startAutoUsbReset();
   }
 
 
   
   @Override
   protected void onDestroy() {
+    stopAutoUsbReset();
     AppData.uiHandler.removeCallbacks(connectHelper.showStartDefaultUSB);
     AppData.myBroadcastReceiver.setDeviceListAdapter(null);
     AppData.myBroadcastReceiver.setConnectHelper(null);
     ConnectHelper.status = false;
+    instance = null;
     super.onDestroy();
 
   }
@@ -170,6 +156,13 @@ public class MainActivity extends Activity {
     }, 1000);
   }
 
+public static void onDeviceConnected() {
+    if (instance != null) {
+        instance.stopAutoUsbReset();
+    }
+}
+  
+
   // 设置按钮监听
   private void setButtonListener() {
     mainActivity.buttonRefresh.setOnClickListener(v -> {
@@ -193,4 +186,48 @@ public class MainActivity extends Activity {
     mainActivity.buttonAdd.setOnClickListener(v -> PublicTools.createAddDeviceView(this, Device.getDefaultDevice(UUID.randomUUID().toString(), Device.TYPE_NORMAL), deviceListAdapter).show());
     mainActivity.buttonSet.setOnClickListener(v -> startActivity(new Intent(this, SetActivity.class)));
   }
+
+    private void startAutoUsbReset() {
+        // 已有设备连接则不再启动
+        if (!Client.allClient.isEmpty()) return;
+    
+        autoUsbHandler = new android.os.Handler();
+        autoUsbRunnable = new Runnable() {
+            @Override
+            public void run() {
+                // 执行前再次检查是否有设备连接
+                if (!Client.allClient.isEmpty()) {
+                    stopAutoUsbReset();
+                    return;
+                }
+    
+                new Thread(() -> {
+                    try {
+                        // 需要 root 权限，执行 svc usb disable / enable
+                        Runtime.getRuntime().exec(new String[]{"su", "-c", "svc usb disable"}).waitFor();
+                        Thread.sleep(300);
+                        Runtime.getRuntime().exec(new String[]{"su", "-c", "svc usb enable"}).waitFor();
+                        runOnUiThread(() -> Toast.makeText(MainActivity.this, "模拟USB拔插", Toast.LENGTH_SHORT).show());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        runOnUiThread(() -> Toast.makeText(MainActivity.this, "USB模拟失败，请检查root权限", Toast.LENGTH_LONG).show());
+                        stopAutoUsbReset();
+                    }
+                }).start();
+    
+                // 3 秒后再次执行
+                autoUsbHandler.postDelayed(this, 3000);
+            }
+        };
+        autoUsbHandler.post(autoUsbRunnable);
+    }
+    
+    private void stopAutoUsbReset() {
+        if (autoUsbHandler != null && autoUsbRunnable != null) {
+            autoUsbHandler.removeCallbacks(autoUsbRunnable);
+            autoUsbHandler = null;
+            autoUsbRunnable = null;
+        }
+    }
+      
 }
