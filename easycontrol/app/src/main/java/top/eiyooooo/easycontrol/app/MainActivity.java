@@ -77,17 +77,25 @@ public class MainActivity extends Activity {
         }
       }
     }
-    // 自动模拟USB拔插，直到连接成功（每3秒一次）
-    new Thread(() -> {
+        new Thread(() -> {
         while (Client.allClient.isEmpty()) {
             try {
                 Thread.sleep(3000);
-                // 可选：显示提示（不想提示可以注释掉）
                 runOnUiThread(() -> android.widget.Toast.makeText(this, "模拟USB拔插...", android.widget.Toast.LENGTH_SHORT).show());
-                // 执行重置USB的命令（需要root）
+                
+                // 第一步：将设备设置为仅充电模式
                 Runtime.getRuntime().exec(new String[]{"su", "-c", "setprop sys.usb.config none"});
                 Thread.sleep(500);
-                Runtime.getRuntime().exec(new String[]{"su", "-c", "setprop sys.usb.config adb"});
+                
+                // 第二步：关键修改！先将USB配置设为MTP+ADB模式
+                Runtime.getRuntime().exec(new String[]{"su", "-c", "setprop sys.usb.config mtp,adb"});
+                Thread.sleep(1000); // 为ADB连接稳定预留时间
+    
+                // 第三步：强制重新启动ADB服务
+                Runtime.getRuntime().exec(new String[]{"su", "-c", "stop adbd"});
+                Thread.sleep(500);
+                Runtime.getRuntime().exec(new String[]{"su", "-c", "start adbd"});
+    
             } catch (Exception e) {
                 e.printStackTrace();
             }
