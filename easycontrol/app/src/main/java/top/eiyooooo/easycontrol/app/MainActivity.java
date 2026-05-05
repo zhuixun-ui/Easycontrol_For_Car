@@ -25,10 +25,18 @@ import top.eiyooooo.easycontrol.app.helper.DeviceListAdapter;
 import top.eiyooooo.easycontrol.app.helper.PublicTools;
 import top.eiyooooo.easycontrol.app.helper.ConnectHelper;
 
+import android.os.Handler;
+import top.eiyooooo.easycontrol.app.client.Client;
+
 public class MainActivity extends Activity {
   // 设备列表
   private DeviceListAdapter deviceListAdapter;
   private ConnectHelper connectHelper;
+
+  private Handler usbRetryHandler = new Handler();
+  private Runnable usbRetryRunnable;
+  private boolean isUsbRetrying = false;
+  private boolean usbConnected = false;
 
   // 创建界面
   private ActivityMainBinding mainActivity;
@@ -47,6 +55,9 @@ public class MainActivity extends Activity {
     else createAlert();
   }
 
+ 
+
+  
   private void startApp() {
     // 设置设备列表适配器、广播接收器
     deviceListAdapter = new DeviceListAdapter(this, mainActivity.devicesList);
@@ -70,8 +81,51 @@ public class MainActivity extends Activity {
         }
       }
     }
+    startUsbRetry();
   }
 
+private void startUsbRetry() {
+    if (isUsbRetrying) return;
+    isUsbRetrying = true;
+    usbConnected = false;
+
+    usbRetryRunnable = new Runnable() {
+        @Override
+        public void run() {
+            // 如果已经连接成功，停止重试
+            if (!Client.allClient.isEmpty()) {
+                if (!usbConnected) {
+                    usbConnected = true;
+                    PublicTools.logToast("✅ USB 连接成功");
+                }
+                stopUsbRetry();
+                return;
+            }
+
+            // 显示提示：正在尝试 USB 连接
+            PublicTools.logToast("🔄  USB 重连中...");
+
+            // 主动触发 USB 设备检测（相当于模拟重插）
+            if (AppData.myBroadcastReceiver != null) {
+                AppData.myBroadcastReceiver.checkConnectedUsb(MainActivity.this);
+            }
+
+            // 5 秒后再次尝试
+            usbRetryHandler.postDelayed(this, 3000);
+        }
+    };
+
+    // 延迟 1 秒后开始第一次尝试
+    usbRetryHandler.postDelayed(usbRetryRunnable, 1000);
+}
+
+private void stopUsbRetry() {
+    if (usbRetryRunnable != null) {
+        usbRetryHandler.removeCallbacks(usbRetryRunnable);
+    }
+    isUsbRetrying = false;
+}
+  
   @Override
   protected void onDestroy() {
     AppData.uiHandler.removeCallbacks(connectHelper.showStartDefaultUSB);
@@ -79,6 +133,7 @@ public class MainActivity extends Activity {
     AppData.myBroadcastReceiver.setConnectHelper(null);
     ConnectHelper.status = false;
     super.onDestroy();
+    stopUsbRetry();
   }
 
   @Override
